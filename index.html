@@ -41,7 +41,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 [hidden]{display:none!important}
 
 /* الترويسة */
-header{background:var(--navy);color:#fff;position:sticky;top:0;z-index:5;
+header{background:var(--navy);color:#fff;position:sticky;top:0;z-index:1000;
   padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));
   display:flex;align-items:center;gap:10px}
 header img{width:30px;height:30px;border-radius:8px}
@@ -127,7 +127,7 @@ label{font-size:13px;color:var(--mut);display:block;margin-bottom:4px}
 .tsel{display:flex;gap:6px;align-items:center}
 .tsel select{flex:1;font-weight:600}
 #target{font-size:12.5px;color:var(--mut);margin-top:6px;text-align:center}
-#dist{font-size:58px;font-weight:700;text-align:center;line-height:1.05;margin:10px 0 2px;letter-spacing:-1px}
+#dist{font-size:50px;font-weight:700;text-align:center;line-height:1.05;margin:6px 0 0;letter-spacing:-1px}
 #dist small{font-size:20px;font-weight:600;letter-spacing:0}
 #dirTxt{text-align:center;font-size:15px;color:var(--mut);min-height:24px}
 .offs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 4px}
@@ -140,7 +140,24 @@ label{font-size:13px;color:var(--mut);display:block;margin-bottom:4px}
 .seg button.on{background:var(--card);color:var(--ink);font-weight:600;box-shadow:0 1px 2px #0002}
 .dial{position:relative;width:min(80vw,310px);aspect-ratio:1;margin:8px auto 0;max-width:100%}
 .dial svg{width:100%;height:100%;display:block}
-#arrowG,#radarG{transition:transform .25s linear}
+#arrowG{transition:transform .3s ease-out}
+#arrowP,#zoneRing{transition:fill .3s,stroke .3s}
+.cue{margin:10px auto 0;text-align:center;font-size:20px;font-weight:700;border-radius:14px;padding:8px 12px;background:var(--soft);border:2px solid var(--line)}
+.cue.z-mid{background:var(--warn-bg);border-color:var(--warn);color:var(--warn)}
+.cue.z-near{background:var(--warn);border-color:var(--warn);color:#fff}
+.cue.z-ok{background:var(--ok);border-color:var(--ok);color:#fff;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.03)}}
+.mapBox{isolation:isolate;position:relative;margin-top:10px;border-radius:16px;overflow:hidden;border:1px solid var(--line)}
+#map{height:min(62vh,440px);background:#1b2433}
+.mapBtns{position:absolute;bottom:30px;left:10px;right:10px;display:flex;gap:6px;justify-content:center;z-index:500;flex-wrap:wrap}
+.mapBtns .btn{background:#ffffffee;color:#0f2340;border-color:#0002;box-shadow:0 2px 8px #0004}
+.mapBtns .btn.on{background:var(--gold);color:var(--gold-ink)}
+.mapMsg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;background:var(--soft);color:var(--mut);z-index:600}
+.me-ic{width:44px;height:44px}
+.pt-ic{display:grid;place-items:center;border-radius:50%;font-weight:700;font-size:12px;color:#0f2340;background:#fff;border:3px solid #0f2340;box-shadow:0 1px 4px #0008}
+.pt-ic.cur{background:#c9a24a;font-size:14px;box-shadow:0 0 0 6px #c9a24a66,0 1px 4px #0008}
+.pt-ic.done{background:#15803d;color:#fff}
+.leaflet-container{font-family:inherit}
 #reach{text-align:center;font-size:19px;font-weight:700;color:#fff;background:var(--ok);border-radius:14px;padding:10px;margin-top:10px}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-top:10px}
 .stats div{background:var(--soft);border-radius:12px;padding:8px 4px}
@@ -162,13 +179,13 @@ summary{cursor:pointer;color:var(--mut);font-size:13px}
 .sides div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:2px 0}
 
 /* الشريط السفلي */
-nav{position:fixed;inset:auto 0 0 0;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:6;
+nav{position:fixed;inset:auto 0 0 0;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:1000;
   padding:6px max(10px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));gap:6px}
 nav button{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--mut);padding:6px;border-radius:12px;cursor:pointer}
 nav button svg{width:24px;height:24px}
 nav button.on{color:var(--ink);background:var(--soft);font-weight:600}
 nav button.on svg{color:var(--gold)}
-.toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 16px;border-radius:999px;font-size:14px;z-index:9;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100vw - 32px);text-align:center;box-shadow:0 4px 16px #0004}
+.toast{z-index:1100!important;position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 16px;border-radius:999px;font-size:14px;z-index:9;opacity:0;transition:opacity .2s;pointer-events:none;max-width:calc(100vw - 32px);text-align:center;box-shadow:0 4px 16px #0004}
 .toast.show{opacity:1;pointer-events:auto}
 .toast button{background:none;border:0;color:var(--gold);font-weight:700;margin-inline-start:10px;cursor:pointer}
 </style>
@@ -265,36 +282,55 @@ nav button.on svg{color:var(--gold)}
     <div id="dist">—</div>
     <div id="dirTxt">اختر نقطة من القائمة</div>
 
+    <div id="cue" class="cue">اختر نقطة</div>
+
+    <div class="seg" role="tablist"><button id="vArrow" class="on" type="button">🧭 سهم</button><button id="vMap" type="button">🛰️ قمر صناعي</button></div>
+
+    <!-- السهم + شاشة الهدف القريب -->
+    <div class="dial" id="dialBox">
+      <svg viewBox="0 0 300 300" aria-hidden="true" id="dialSvg">
+        <circle cx="150" cy="150" r="146" fill="var(--soft)"/>
+        <circle cx="150" cy="150" r="140" fill="none" id="zoneRing" stroke="var(--line)" stroke-width="8"/>
+        <g id="ticksG"></g>
+        <!-- بعيد: سهم عريض -->
+        <g id="farView">
+          <g id="arrowG">
+            <path d="M150 38 L232 150 L184 150 L184 250 L116 250 L116 150 L68 150 Z" id="arrowP" fill="var(--gold)" stroke="#fff" stroke-width="6" stroke-linejoin="round"/>
+          </g>
+        </g>
+        <!-- قريب (٥ م): شاشة الهدف -->
+        <g id="nearView" style="display:none">
+          <circle cx="150" cy="150" r="125" fill="none" stroke="var(--warn)" stroke-width="2" stroke-dasharray="4 5"/>
+          <circle cx="150" cy="150" r="75" fill="none" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="3 5"/>
+          <circle cx="150" cy="150" r="25" fill="var(--ok)" fill-opacity=".18" stroke="var(--ok)" stroke-width="3"/>
+          <text x="244" y="246" font-size="12" font-weight="600" fill="var(--warn)">٥ م</text>
+          <text x="209" y="211" font-size="12" font-weight="600" fill="var(--warn)">٣ م</text>
+          <text x="170" y="176" font-size="12" font-weight="700" fill="var(--ok)">١ م</text>
+          <path d="M150 132 V168 M132 150 H168" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+          <g id="tgtG"><circle r="20" fill="var(--gold)" fill-opacity=".35"><animate attributeName="r" values="12;24;12" dur="1.2s" repeatCount="indefinite"/></circle>
+            <circle r="11" fill="var(--gold)" stroke="var(--navy)" stroke-width="3"/></g>
+        </g>
+        <g id="northG"><circle cx="150" cy="18" r="11" fill="var(--bad)"/><text x="150" y="23" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">N</text></g>
+      </svg>
+    </div>
+
+    <!-- خريطة الأقمار الصناعية -->
+    <div class="mapBox" id="mapBox" hidden>
+      <div id="map"></div>
+      <div class="mapBtns">
+        <button class="btn sm" id="mFollow" type="button">📍 تتبعني</button>
+        <button class="btn sm" id="mFit" type="button">⤢ أنا والنقطة</button>
+        <button class="btn sm" id="mLayer" type="button">🗺️ شوارع</button>
+      </div>
+      <div class="mapMsg" id="mapMsg" hidden></div>
+    </div>
+    <p class="hint" id="viewHint" style="text-align:center;margin-top:4px">امسك الجوال أفقياً — أعلى الجوال = اتجاه سيرك</p>
+    <div id="reach" hidden>✔ وصلت إلى النقطة</div>
     <div class="offs" id="offs" hidden>
       <div class="off"><span id="oNsL">شمال</span><b class="num" id="oNs">—</b></div>
       <div class="off"><span id="oEwL">شرق</span><b class="num" id="oEw">—</b></div>
       <div class="off rel" id="oRel" hidden></div>
     </div>
-
-    <div class="seg" role="tablist"><button id="vArrow" class="on" type="button">سهم</button><button id="vRadar" type="button">خريطة</button></div>
-    <div class="dial">
-      <svg viewBox="0 0 300 300" aria-hidden="true" id="dialSvg">
-        <circle cx="150" cy="150" r="142" fill="var(--soft)" stroke="var(--line)" stroke-width="2"/>
-        <g id="arrowView">
-          <circle cx="150" cy="150" r="100" fill="none" stroke="var(--line)" stroke-dasharray="3 6"/>
-          <g id="arrowG"><path d="M150 30 L200 222 L150 192 L100 222 Z" fill="var(--gold)" stroke="var(--navy)" stroke-width="3" stroke-linejoin="round"/></g>
-          <circle cx="150" cy="150" r="9" fill="var(--navy)"/>
-        </g>
-        <g id="radarView" style="display:none">
-          <circle cx="150" cy="150" r="43" fill="none" stroke="var(--line)"/>
-          <circle cx="150" cy="150" r="87" fill="none" stroke="var(--line)"/>
-          <circle cx="150" cy="150" r="130" fill="none" stroke="var(--line)"/>
-          <text x="150" y="190" text-anchor="middle" font-size="10" fill="var(--mut)" id="rl1"></text>
-          <text x="150" y="234" text-anchor="middle" font-size="10" fill="var(--mut)" id="rl2"></text>
-          <text x="150" y="277" text-anchor="middle" font-size="10" fill="var(--mut)" id="rl3"></text>
-          <g id="radarG"></g>
-          <path d="M150 136 L158 160 L150 155 L142 160Z" fill="var(--navy)" stroke="#fff" stroke-width="1.5"/>
-        </g>
-        <g id="northG"><text x="150" y="22" text-anchor="middle" font-size="14" font-weight="700" fill="var(--bad)">N</text></g>
-      </svg>
-    </div>
-    <p class="hint" style="text-align:center;margin-top:0">أعلى الجوال = اتجاه سيرك</p>
-    <div id="reach" hidden>✔ وصلت إلى النقطة</div>
 
     <div class="stats">
       <div><b class="num" id="sAcc">—</b><span>دقة الـGPS (م)</span></div>
@@ -378,15 +414,20 @@ nav button.on svg{color:var(--gold)}
       <div><label for="stZone">النظام الافتراضي للأرقام</label>
         <select id="stZone"><option value="auto">تلقائي من موقعي</option><option value="37">UTM 37N</option><option value="38">UTM 38N</option><option value="39">UTM 39N</option><option value="40">UTM 40N</option></select></div>
       <div><label for="stTol">اعتبار الوصول عند</label>
-        <select id="stTol"><option value="auto">تلقائي (حسب الدقة)</option><option value="0.3">٠٫٣ م</option><option value="0.5">٠٫٥ م</option><option value="1">١ م</option><option value="2">٢ م</option><option value="3">٣ م</option><option value="5">٥ م</option></select></div>
+        <select id="stTol"><option value="0.3">٠٫٣ م</option><option value="0.5">٠٫٥ م</option><option value="auto">١ م (افتراضي)</option><option value="2">٢ م</option><option value="3">٣ م</option><option value="5">٥ م</option></select></div>
     </div>
     <div class="row field">
       <div><label for="stDecl">الانحراف المغناطيسي (°)</label><input id="stDecl" class="num" inputmode="decimal"></div>
       <div><label for="stSun">وضع الشمس</label>
         <select id="stSun"><option value="0">عادي</option><option value="1">تباين عالٍ</option></select></div>
     </div>
+    <div class="row field">
+      <div><label for="stVoice">الإعلان الصوتي بالعربي</label>
+        <select id="stVoice"><option value="1">يعمل («باقي خمسة أمتار»)</option><option value="0">متوقف (صفارة فقط)</option></select></div>
+    </div>
+    <p class="hint">الصوت: صفارة هادئة من ٢٠ م، ثم صفارة عالية جداً تتسارع من ٥ م، ثم إنذار متواصل مع اهتزاز عند مسافة الوصول. ارفع صوت الجوال للآخر.</p>
     <p class="hint">الانحراف الافتراضي ٣° (الرياض والشرقية تقريباً). جدة والغربية حوالي ٣٫٥°. يصحّح البوصلة إلى الشمال الحقيقي.</p>
-    <p class="hint" id="ver">الإصدار 2.2</p>
+    <p class="hint" id="ver">الإصدار 2.4</p>
   </div>
 </section>
 </main>
@@ -415,13 +456,13 @@ const store = {
 };
 
 /* ================= الإعدادات ================= */
-const set = Object.assign({ zone: 'auto', tol: 'auto', decl: 3, sun: '0' }, store.get('pf_set', {}));
+const set = Object.assign({ zone: 'auto', tol: 'auto', decl: 3, sun: '0', voice: '1' }, store.get('pf_set', {}));
 function applySet() {
-  $('stZone').value = set.zone; $('stTol').value = set.tol; $('stDecl').value = set.decl; $('stSun').value = set.sun;
+  $('stZone').value = set.zone; $('stTol').value = set.tol; $('stDecl').value = set.decl; $('stSun').value = set.sun; $('stVoice').value = set.voice;
   document.body.classList.toggle('sun', set.sun === '1');
 }
-['stZone', 'stTol', 'stDecl', 'stSun'].forEach(id => $(id).addEventListener('change', () => {
-  set.zone = $('stZone').value; set.tol = $('stTol').value; set.sun = $('stSun').value;
+['stZone', 'stTol', 'stDecl', 'stSun', 'stVoice'].forEach(id => $(id).addEventListener('change', () => {
+  set.zone = $('stZone').value; set.tol = $('stTol').value; set.sun = $('stSun').value; set.voice = $('stVoice').value;
   const d = parseFloat(normDigits($('stDecl').value)); set.decl = isFinite(d) ? d : 3;
   store.set('pf_set', set); applySet(); toast('حُفظ الإعداد');
 }));
@@ -519,6 +560,7 @@ const save = () => { store.set('pf_pts', pts); store.set('pf_cur', curIdx); };
 const newId = () => Math.random().toString(36).slice(2, 10);
 
 function renderPts() {
+  if (typeof map !== 'undefined' && map) drawMapPts();
   const done = pts.filter(p => p.done).length;
   $('ptsSum').innerHTML = pts.length ? `<span><b>${pts.length}</b> نقطة</span><span>·</span><span><b>${done}</b> موقَّعة</span><span>·</span><span><b>${pts.length - done}</b> متبقية</span>` : '';
   $('bClear').hidden = !pts.length;
@@ -786,18 +828,21 @@ async function startCompass() {
 let sound = false, actx = null, lastBeep = 0, wake = null, reached = false, view = 'arrow';
 async function startNav() {
   if (!(curIdx >= 0) || !pts[curIdx]) return toast('أضف نقطة أولاً');
+  if (sound) ensureAudio();
   startGPS(); await startCompass();
   try { if (!wake) wake = await navigator.wakeLock?.request('screen'); wake?.addEventListener?.('release', () => wake = null); } catch (e) {}
   reached = false; renderPts(); updNav();
 }
-function pick(i) { if (!pts.length) return; curIdx = (i + pts.length) % pts.length; reached = false; save(); renderPts(); updNav(); }
+function pick(i) { if (!pts.length) return; curIdx = (i + pts.length) % pts.length; reached = false; saidTh = Infinity; fitted = false;
+  save(); renderPts(); if (typeof drawMapPts === 'function') drawMapPts(); updNav(); }
 $('selPt').onchange = () => { pick(+$('selPt').value); startNav(); };
 $('bPrev').onclick = () => pick(curIdx - 1);
 $('bNext').onclick = () => pick(curIdx + 1);
 $('bHold').onclick = () => { hold = !hold; buf = buf.slice(-1); $('bHold').classList.toggle('on', hold);
   $('bHold').textContent = hold ? '▶ إلغاء التثبيت' : '⏸ تثبيت ومتوسط'; toast(hold ? 'قف ثابتاً — يُحسب متوسط القراءات' : 'رجعنا للتتبع المباشر'); };
-$('bSound').onclick = () => { sound = !sound; $('bSound').classList.toggle('on', sound); $('bSound').textContent = sound ? '🔊 الصوت' : '🔈 الصوت';
-  if (sound && !actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } actx?.resume?.(); };
+function soundUI() { $('bSound').classList.toggle('on', sound); $('bSound').textContent = sound ? '🔊 الصوت يعمل' : '🔇 الصوت متوقف'; }
+$('bSound').onclick = () => { sound = !sound; store.set('pf_sound', sound); soundUI();
+  if (sound) { ensureAudio(); beepLoud(2900, 0.12); setTimeout(() => beepLoud(3400, 0.12), 150); toast('ارفع صوت الجوال للآخر'); } };
 $('bStake').onclick = () => {
   const p = pts[curIdx]; if (!p) return;
   if (!me) return toast('لا يوجد موقع بعد');
@@ -813,20 +858,147 @@ $('bStake').onclick = () => {
   const nxt = pts.findIndex((q, i) => i > curIdx && !q.done), any = pts.findIndex(q => !q.done);
   if (nxt >= 0 || any >= 0) pick(nxt >= 0 ? nxt : any); else { renderPts(); updNav(); toast('🎉 انتهت كل النقاط'); }
 };
-function setView(v) { view = v; $('vArrow').classList.toggle('on', v === 'arrow'); $('vRadar').classList.toggle('on', v === 'radar');
-  $('arrowView').style.display = v === 'arrow' ? '' : 'none'; $('radarView').style.display = v === 'radar' ? '' : 'none'; updNav(); }
-$('vArrow').onclick = () => setView('arrow'); $('vRadar').onclick = () => setView('radar');
-function beep(freq) { if (!actx) return; const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = freq; o.connect(g); g.connect(actx.destination);
-  g.gain.setValueAtTime(0.18, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + 0.15); o.start(); o.stop(actx.currentTime + 0.16); }
+function setView(v, lazy) { view = v; store.set('pf_view', v);
+  $('vArrow').classList.toggle('on', v === 'arrow'); $('vMap').classList.toggle('on', v === 'map');
+  $('dialBox').hidden = v !== 'arrow'; $('mapBox').hidden = v !== 'map';
+  $('viewHint').textContent = v === 'map' ? 'اسحب الخريطة بإصبعك · «تتبعني» يرجعها لموقعك' : 'امسك الجوال أفقياً — أعلى الجوال = اتجاه سيرك';
+  if (v === 'map' && !lazy) initMap(); updNav(); }
+$('vArrow').onclick = () => setView('arrow'); $('vMap').onclick = () => setView('map');
+// علامات البوصلة حول الدائرة
+$('ticksG').innerHTML = Array.from({ length: 36 }, (_, i) => { const a = i * 10 * D2R, big = i % 9 === 0, r1 = big ? 122 : 128;
+  return `<line x1="${f(150 + r1 * Math.sin(a), 1)}" y1="${f(150 - r1 * Math.cos(a), 1)}" x2="${f(150 + 135 * Math.sin(a), 1)}" y2="${f(150 - 135 * Math.cos(a), 1)}" stroke="var(--mut)" stroke-width="${big ? 3 : 1.5}" stroke-linecap="round"/>`; }).join('');
+
+/* ---------- الإعلان الصوتي بالعربي ---------- */
+const SAY = [[50, 'باقي خمسين متر'], [20, 'باقي عشرين متر'], [10, 'باقي عشرة أمتار'], [5, 'باقي خمسة أمتار'], [3, 'باقي ثلاثة أمتار'], [2, 'باقي مترين'], [1, 'باقي متر واحد']];
+let saidTh = Infinity;
+function say(t) {
+  if (!sound || set.voice === '0' || !('speechSynthesis' in window)) return;
+  try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'ar-SA'; u.rate = 1.05; u.volume = 1;
+    const v = speechSynthesis.getVoices().find(x => /^ar/i.test(x.lang)); if (v) u.voice = v; speechSynthesis.speak(u); } catch (e) {}
+}
+function announce(d, ok) {
+  if (ok) { if (saidTh > 0) { saidTh = 0; say('وصلت إلى النقطة'); } return; }
+  if (d > saidTh * 1.5 + 2) saidTh = Infinity;                       // ابتعد → يعاد الإعلان عند الاقتراب
+  for (const [th, t] of SAY) if (d <= th && th < saidTh && d > th * 0.6) { saidTh = th; say(t); break; }
+}
+
+/* ---------- خريطة الأقمار الصناعية ---------- */
+let map = null, mk = {}, follow = true, mapLayer = 'sat', fitted = false;
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const c = document.createElement('link'); c.rel = 'stylesheet'; c.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(c);
+    const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s);
+  });
+}
+const meIcon = () => L.divIcon({ className: '', iconSize: [44, 44], iconAnchor: [22, 22],
+  html: `<svg class="me-ic" viewBox="0 0 44 44"><g class="cone"><path d="M22 0 L33 17 Q22 12 11 17Z" fill="#3b82f6" fill-opacity=".85"/></g><circle cx="22" cy="22" r="9" fill="#3b82f6" stroke="#fff" stroke-width="3.5"/></svg>` });
+async function initMap() {
+  if (map) { setTimeout(() => { map.invalidateSize(); updMap(); }, 80); return; }
+  $('mapMsg').hidden = false; $('mapMsg').textContent = 'جارٍ تحميل الخريطة…';
+  try { await loadLeaflet(); } catch (e) { $('mapMsg').textContent = 'الخريطة تحتاج إنترنت في أول مرة. افتحها مرة وأنت متصل، وتبقى المناطق التي شاهدتها محفوظة.'; return; }
+  $('mapMsg').hidden = true;
+  const c = me ? [me.lat, me.lon] : pts[curIdx] ? toLL(pts[curIdx]) : [24.7, 46.7];
+  map = L.map('map', { maxZoom: 22, zoomControl: true, attributionControl: true }).setView(c, 18);
+  map.attributionControl.setPrefix(false);
+  mk.sat = L.layerGroup([
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 19, maxZoom: 22, attribution: 'صور © Esri, Maxar' }),
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 19, maxZoom: 22 }),
+  ]);
+  mk.osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 22, attribution: '© OpenStreetMap' });
+  mk.sat.addTo(map);
+  mk.bound = L.polygon([], { color: '#ffffff', weight: 1.5, dashArray: '4 6', fill: false, interactive: false }).addTo(map);
+  mk.line = L.polyline([], { color: '#c9a24a', weight: 5, dashArray: '10 8', interactive: false }).addTo(map);
+  mk.pts = L.layerGroup().addTo(map);
+  mk.acc = L.circle(c, { radius: 1, color: '#3b82f6', weight: 1, fillOpacity: .15, interactive: false });
+  mk.me = L.marker(c, { icon: meIcon(), interactive: false, zIndexOffset: 1000, keyboard: false });
+  map.on('dragstart', () => { follow = false; $('mFollow').classList.remove('on'); });
+  $('mFollow').classList.add('on');
+  drawMapPts();
+  setTimeout(() => { map.invalidateSize(); fitted = false; updMap(true); }, 120);
+}
+function drawMapPts() {
+  if (!map) return; mk.pts.clearLayers();
+  const lls = pts.map(toLL);
+  pts.forEach((p, i) => { const cur = i === curIdx, s = cur ? 34 : 26;
+    L.marker(lls[i], { zIndexOffset: cur ? 900 : 0, icon: L.divIcon({ className: '', iconSize: [s, s], iconAnchor: [s / 2, s / 2],
+      html: `<div class="pt-ic ${cur ? 'cur' : ''} ${p.done ? 'done' : ''}" style="width:${s}px;height:${s}px">${esc(p.no)}</div>` }) })
+      .on('click', () => pick(i)).addTo(mk.pts); });
+  mk.bound.setLatLngs(lls.length >= 3 ? lls : []);
+}
+function updMap(first) {
+  if (!map || view !== 'map') return;
+  const p = pts[curIdx], t = p ? toLL(p) : null;
+  if (me) {
+    const ll = [me.lat, me.lon];
+    mk.me.setLatLng(ll); if (!map.hasLayer(mk.me)) { mk.me.addTo(map); mk.acc.addTo(map); }
+    mk.acc.setLatLng(ll).setRadius(Math.max(0.5, me.acc));
+    const h = heading !== null ? heading : (me.speed > 0.7 && me.heading != null ? me.heading : null), el = mk.me.getElement();
+    if (el) { const s = el.querySelector('svg'); s.style.transform = `rotate(${h ?? 0}deg)`; el.querySelector('.cone').style.display = h === null ? 'none' : ''; }
+    mk.line.setLatLngs(t ? [ll, t] : []);
+    if ((first || !fitted) && t) { map.fitBounds(L.latLngBounds([ll, t]).pad(0.25), { maxZoom: 20 }); fitted = Date.now(); }
+    else if (follow && Date.now() - fitted > 4000 && !map.getBounds().pad(-0.25).contains(ll)) map.panTo(ll, { animate: true, duration: 0.4 });
+  } else if (first && t) map.setView(t, 19);
+}
+$('mFollow').onclick = () => { follow = true; $('mFollow').classList.add('on'); if (me && map) map.setView([me.lat, me.lon], Math.max(map.getZoom(), 19)); };
+$('mFit').onclick = () => { const p = pts[curIdx]; if (!map || !p) return; follow = false; $('mFollow').classList.remove('on');
+  const b = [toLL(p)]; if (me) b.push([me.lat, me.lon]); map.fitBounds(L.latLngBounds(b).pad(0.3), { maxZoom: 20 }); };
+$('mLayer').onclick = () => { if (!map) return; mapLayer = mapLayer === 'sat' ? 'osm' : 'sat';
+  map.removeLayer(mapLayer === 'sat' ? mk.osm : mk.sat); (mapLayer === 'sat' ? mk.sat : mk.osm).addTo(map);
+  $('mLayer').textContent = mapLayer === 'sat' ? '🗺️ شوارع' : '🛰️ قمر صناعي'; };
+/* ---------- الصوت ----------
+   > ٢٠ م: صامت · ٥–٢٠ م: نغمة هادئة تتسارع
+   ١–٥ م: صفارة عالية تتسارع كلما قربت · ≤ ١ م (أو مسافة الوصول): إنذار متواصل بأعلى صوت + اهتزاز */
+let comp = null, navDist = null;
+sound = store.get('pf_sound', true);
+function ensureAudio() {
+  try {
+    if (navigator.audioSession) navigator.audioSession.type = 'playback';   // آيفون: يتجاوز زر الصامت
+    if (!actx) {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      // ضاغط يرفع شدة الصوت المسموعة دون تشويه
+      comp = actx.createDynamicsCompressor();
+      comp.threshold.value = -24; comp.knee.value = 0; comp.ratio.value = 20; comp.attack.value = 0.001; comp.release.value = 0.05;
+      const out = actx.createGain(); out.gain.value = 1.6; comp.connect(out); out.connect(actx.destination);
+    }
+    if (actx.state !== 'running') actx.resume();
+  } catch (e) {}
+}
+// أي لمسة في التطبيق تفعّل الصوت (المتصفحات تمنعه قبل أول لمسة)
+document.addEventListener('pointerdown', () => { if (sound) ensureAudio(); }, { passive: true });
+function tone(freq, dur, vol, type) {
+  if (!actx || actx.state !== 'running') return;
+  const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = freq; o.connect(g); g.connect(comp);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.004);
+  g.gain.setValueAtTime(vol, t + dur * 0.75); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+const beepSoft = (freq, dur = 0.12) => tone(freq, dur, 0.35, 'sine');
+// نغمتان مربعتان قرب ٣ كيلوهرتز = أعلى ما تسمعه الأذن من سماعة الجوال
+const beepLoud = (freq, dur = 0.09) => { tone(freq, dur, 1, 'square'); tone(freq * 1.5, dur, 0.6, 'square'); };
+let lastVib = 0;
+setInterval(() => {
+  if (!sound || navDist === null || $('pNav').hidden || document.hidden) return;
+  const d = navDist, now = Date.now(), tol = set.tol === 'auto' ? 1 : Math.max(1, +set.tol);
+  let gap = 0, play = null;
+  if (d <= tol) { gap = 110; play = () => beepLoud((now / 110 | 0) % 2 ? 3400 : 2900, 0.085);       // إنذار متواصل
+    if (now - lastVib > 700) { lastVib = now; navigator.vibrate?.([300, 100, 300]); } }
+  else if (d <= 5) { gap = 120 + (d - 1) * 80; play = () => beepLoud(2200 + (5 - d) * 180, 0.08); }  // ١٩٠–٤٤٠ مللي ث
+  else if (d <= 20) { gap = 500 + (d - 5) * 60; play = () => beepSoft(900 + (20 - d) * 25); }
+  if (play && now - lastBeep >= gap) { lastBeep = now; play(); }
+}, 40);
 const dirAr = b => ['الشمال','الشمال الشرقي','الشرق','الجنوب الشرقي','الجنوب','الجنوب الغربي','الغرب','الشمال الغربي'][Math.round(b / 45) % 8];
 const niceStep = x => { const p = 10 ** Math.floor(Math.log10(x)), m = x / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * p; };
 function updNav(fromCompass) {
   const p = pts[curIdx];
-  if (!p) { $('target').textContent = ''; $('dist').textContent = '—'; $('dirTxt').textContent = 'أضف نقاطاً أولاً من شاشة «النقاط»'; $('offs').hidden = true; return; }
+  navDist = null;
+  if (!p) { $('target').textContent = ''; $('dist').textContent = '—'; $('dirTxt').textContent = 'أضف نقاطاً أولاً من شاشة «النقاط»'; $('offs').hidden = true; cue('', 'أضف نقاطاً أولاً'); return; }
   $('target').textContent = `${sysName(p.sys)} · ${fmtA(p)} , ${fmtB(p)}` + (p.done ? ' · ✔ موقَّعة' : '');
-  const h = heading !== null ? heading : (me && me.speed > 0.7 && me.heading != null ? me.heading : 0);
-  $('northG').setAttribute('transform', `rotate(${f(-h, 1)} 150 150)`);
-  if (!me) { $('dist').innerHTML = '…'; $('dirTxt').textContent = 'جارٍ تحديد موقعك…'; $('offs').hidden = true; return; }
+  const hasH = heading !== null || !!(me && me.speed > 0.7 && me.heading != null);
+  const h = heading !== null ? heading : hasH ? me.heading : 0;
+  $('northG').setAttribute('transform', `rotate(${f(-h, 1)} 150 150)`); $('ticksG').setAttribute('transform', `rotate(${f(-h, 1)} 150 150)`);
+  if (!me) { $('dist').innerHTML = '…'; $('dirTxt').textContent = 'جارٍ تحديد موقعك…'; $('offs').hidden = true; cue('', '⌛ جارٍ تحديد موقعك'); return; }
   const [la, lo] = toLL(p), r = distBear(me.lat, me.lon, la, lo);
   if (!fromCompass) {
     $('dist').innerHTML = r.d < 1000 ? f(r.d, r.d < 10 ? 2 : 1) + ' <small>م</small>' : f(r.d / 1000, 2) + ' <small>كم</small>';
@@ -841,30 +1013,32 @@ function updNav(fromCompass) {
     $('oRel').hidden = false;
     $('oRel').innerHTML = `${fw >= 0 ? 'أمامك' : 'خلفك'} <b class="num">${f(Math.abs(fw), 1)}</b> م · ${rt >= 0 ? 'يمينك' : 'يسارك'} <b class="num">${f(Math.abs(rt), 1)}</b> م`;
   } else $('oRel').hidden = true;
-  $('arrowG').setAttribute('transform', `rotate(${f((r.b - h + 360) % 360, 1)} 150 150)`);
-  if (view === 'radar') drawRadar(r, h);
-  const tol = set.tol === 'auto' ? Math.max(1, Math.min(3, me.acc)) : +set.tol;
-  const ok = r.d <= tol; $('reach').hidden = !ok;
-  if (ok && !reached) { reached = true; navigator.vibrate?.([120, 60, 120]); if (sound) beep(1320); }
+  const rel = (r.b - h + 360) % 360;
+  const tol = set.tol === 'auto' ? 1 : +set.tol;
+  const ok = r.d <= tol, near = r.d <= 5, zone = ok ? 'z-ok' : near ? 'z-near' : r.d <= 20 ? 'z-mid' : '';
+  // السهم أو شاشة الهدف
+  $('farView').style.display = near ? 'none' : ''; $('nearView').style.display = near ? '' : 'none';
+  $('arrowG').setAttribute('transform', `rotate(${f(rel, 1)} 150 150)`);
+  $('arrowP').setAttribute('fill', r.d <= 20 ? 'var(--warn)' : 'var(--gold)');
+  $('zoneRing').setAttribute('stroke', ok ? 'var(--ok)' : r.d <= 20 ? 'var(--warn)' : 'var(--line)');
+  if (near) { const rr = Math.min(r.d * 25, 132), a = rel * D2R;
+    $('tgtG').setAttribute('transform', `translate(${f(150 + rr * Math.sin(a), 1)} ${f(150 - rr * Math.cos(a), 1)})`); }
+  // التعليمة الكبيرة
+  const m = r.d < 10 ? f(r.d, 1) + ' م' : fmtD(r.d);
+  if (ok) cue(zone, '✔ وصلت — ثبّت العلامة');
+  else if (!hasH) cue(zone, `اتجه نحو ${dirAr(r.b)} · ${m}`);
+  else if (rel < 25 || rel > 335) cue(zone, `⬆ تقدّم للأمام · ${m}`);
+  else if (rel <= 155) cue(zone, `↪ لف يميناً · ${m}`);
+  else if (rel >= 205) cue(zone, `↩ لف يساراً · ${m}`);
+  else cue(zone, `⬇ ارجع للخلف · ${m}`);
+  $('reach').hidden = !ok;
+  if (ok && !reached) { reached = true; navigator.vibrate?.([400, 100, 400]); }
   if (!ok) reached = false;
-  const now = Date.now(), gap = r.d < 20 ? 250 + r.d * 60 : 0;
-  if (sound && gap && now - lastBeep > gap) { lastBeep = now; beep(600 + (20 - r.d) * 30); }
+  if (!fromCompass) announce(r.d, ok);
+  navDist = r.d;
+  updMap();
 }
-function drawRadar(r, h) {
-  const step = niceStep(Math.max(1, r.d * 1.15) / 3), R = 130 / (step * 3);
-  ['rl1', 'rl2', 'rl3'].forEach((id, i) => $(id).textContent = fmtD(step * (i + 1)));
-  let s = '';
-  pts.forEach((p, i) => {
-    const q = distBear(me.lat, me.lon, ...toLL(p)); if (q.d > step * 3.05 && i !== curIdx) return;
-    const rr = Math.min(q.d * R, 136), a = (q.b - h) * D2R, x = 150 + rr * Math.sin(a), y = 150 - rr * Math.cos(a);
-    const cur = i === curIdx;
-    s += `<circle cx="${f(x,1)}" cy="${f(y,1)}" r="${cur ? 9 : 6}" fill="${cur ? 'var(--gold)' : p.done ? 'var(--ok)' : 'var(--card)'}" stroke="var(--navy)" stroke-width="2"/>
-          <text x="${f(x,1)}" y="${f(y - (cur ? 13 : 10),1)}" text-anchor="middle" font-size="${cur ? 13 : 10}" font-weight="700" fill="var(--ink)">${esc(p.no)}</text>`;
-  });
-  // دائرة الدقة
-  s = `<circle cx="150" cy="150" r="${f(Math.min(130, me.acc * R),1)}" fill="var(--gold)" fill-opacity=".12" stroke="none"/>` + s;
-  $('radarG').innerHTML = s;
-}
+function cue(cls, txt) { const c = $('cue'); if (c.textContent !== txt) c.textContent = txt; c.className = 'cue ' + cls; }
 
 /* ================= التحويل ================= */
 $('cSys').innerHTML = SYS_OPTS.map(([v, t]) => `<option value="${v}">${t}</option>`).join(''); $('cSys').value = '39';
@@ -993,7 +1167,7 @@ $('bakIn').onchange = async e => {
 /* ================= التنقل بين الشاشات ================= */
 function show(id) { document.querySelectorAll('main>section').forEach(s => s.hidden = s.id !== id);
   document.querySelectorAll('nav button').forEach(b => b.classList.toggle('on', b.dataset.p === id));
-  if (id === 'pNav') { renderPts(); updNav(); if (pts.length) startNav(); }
+  if (id === 'pNav') { renderPts(); if (view === 'map') initMap(); updNav(); if (pts.length) startNav(); }
   if (id === 'pTools') { convRender(); areaRender(); }
   if (id === 'pPoints') renderPts();
   scrollTo(0, 0); }
@@ -1001,7 +1175,7 @@ document.querySelector('nav').onclick = e => { const b = e.target.closest('butto
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible' && !$('pNav').hidden) { try { wake = await navigator.wakeLock?.request('screen'); } catch (e) {} } });
 
-applySet(); aiUI(); renderPts(); convRender();
+applySet(); aiUI(); soundUI(); setView(store.get('pf_view', 'arrow'), true); renderPts(); convRender();
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
   let had = !!navigator.serviceWorker.controller;
