@@ -1,0 +1,17 @@
+{
+  "name": "مرشد النقطة",
+  "short_name": "مرشد النقطة",
+  "description": "قراءة الإحداثيات من الصور والتوجيه إلى النقاط في الميدان",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f2340",
+  "theme_color": "#0f2340",
+  "icons": [
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
