@@ -274,6 +274,7 @@ nav button.on svg{color:var(--gold)}
       <div><label for="revDat">المرجع</label><select id="revDat"><option value="wgs">WGS84 / KSA-GRF17 (الحديث)</option><option value="aea">عين العبد 1970 (الصكوك القديمة)</option></select></div>
     </div>
     <div class="tw" style="margin-top:8px"><table class="rev"><thead><tr><th></th><th>نقطة</th><th>شرق E / طول</th><th>شمال N / عرض</th></tr></thead><tbody id="tReview"></tbody></table></div>
+    <p class="hint" id="revSchema" style="font-weight:600;color:var(--ink)"></p>
     <p class="hint" id="revNote">قراءة الصور قد تخطئ في رقم — صحّح أي خانة قبل الاعتماد. الأسطر الملوّنة بعيدة عن بقية النقاط وتستحق التدقيق.</p>
     <div class="row" style="margin-top:10px"><button id="bAccept" class="btn pri" type="button">اعتماد المحدد</button><button id="bCancel" class="btn" type="button" style="flex:0 0 auto">إلغاء</button></div>
   </div>
@@ -479,7 +480,7 @@ nav button.on svg{color:var(--gold)}
     <p class="hint">الصوت: صفارة هادئة من ٢٠ م، ثم صفارة عالية جداً تتسارع من ٥ م، ثم إنذار متواصل مع اهتزاز عند مسافة الوصول. ارفع صوت الجوال للآخر.</p>
     <p class="hint"><b>المرجع:</b> أغلب المخططات الحديثة على WGS84/KSA-GRF17. الصكوك والمخططات القديمة قد تكون على «عين العبد 1970» والفرق بينهما قد يصل لأكثر من ٢٠٠ م. تحويل عين العبد الرسمي (EPSG:1055) دقته نحو ±١٨ م، لذلك استخدم «المعايرة على نقطة معلومة» لإزالة الفرق المتبقي.</p>
     <p class="hint">الانحراف الافتراضي ٣° (الرياض والشرقية تقريباً). جدة والغربية حوالي ٣٫٥°. يصحّح البوصلة إلى الشمال الحقيقي.</p>
-    <p class="hint" id="ver">الإصدار 2.8</p>
+    <p class="hint" id="ver">الإصدار 2.9</p>
   </div>
 </section>
 </main>
@@ -610,9 +611,9 @@ function normDigits(s) {
           .replace(/٫/g, '.').replace(/[،٬]/g, ' ');
 }
 const DMS_RE = /(\d{1,3})\s*[°º]\s*(\d{1,2})\s*['′’]\s*(\d{1,2}(?:\.\d+)?)/g;
-function parseText(raw, opts = {}) {
-  const lines = normDigits(raw).split(/\r?\n/), out = [];
-  let auto = pts.length + 1;
+function parseLines(lines, opts = {}, autoStart) {
+  const out = [];
+  let auto = autoStart ?? pts.length + 1;
   for (let line of lines) {
     line = line.trim(); if (!line) continue;
     const dl = line.includes('⚠'); line = line.replace(/⚠/g, ' ');
@@ -648,6 +649,107 @@ function parseText(raw, opts = {}) {
     } else continue;
     auto++;
   }
+  return out;
+}
+
+/* ================= فهم الجدول: يحدد نوع كل عمود من كل الصفوف معاً ================= */
+let lastSchema = '';
+const COL_NAME = { ID: 'رقم النقطة', E: 'الشرق', N: 'الشمال', LAT: 'خط العرض', LON: 'خط الطول', DEG: 'درجات', X: 'عمود آخر' };
+const arD = v => String(v).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+function tokenize(line, csv) {
+  line = line.replace(/⚠/g, ' ');
+  if (csv) line = line.replace(/[;\t|]/g, ' ').replace(/,(?=\S)/g, ' ').replace(/"/g, '');
+  line = line.replace(/(\d),(\d{1,4})(?!\d)/g, '$1.$2');
+  const toks = [], re = /(\d{1,3})\s*[°º]\s*(\d{1,2})\s*['′’]\s*(\d{1,2}(?:\.\d+)?)\s*["″”]?\s*([NSEWشجقغ])?|([A-Za-zء-ي]{1,4}[-_]?\d{0,5}[A-Za-z]?)(?![\d.\wء-ي])|(-?\d+(?:\.\d+)?)/g;
+  let m;
+  while ((m = re.exec(line))) {
+    if (m[1]) toks.push({ k: 'dms', v: +m[1] + m[2] / 60 + m[3] / 3600, s: m[0] });
+    else if (m[5]) toks.push({ k: 'lab', v: null, s: m[5] });
+    else toks.push({ k: 'num', v: +m[6], s: m[6], dec: (m[6].split('.')[1] || '').length });
+  }
+  return toks;
+}
+function tokType(t) {
+  if (t.k === 'lab') return 'ID';
+  if (t.k === 'dms') return 'DEG';
+  const a = Math.abs(t.v), ip = Math.floor(a);
+  if (ip >= 100000 && ip <= 999999) return 'E';
+  if (ip >= 1000000 && ip <= 9999999) return 'N';
+  if (t.dec >= 3 && a <= 180 && a >= 1) return 'DEG';
+  if (Number.isInteger(t.v) && t.v >= 0 && t.v < 100000 && !t.dec) return 'ID';
+  return 'X';
+}
+function parseSmart(lines, opts) {
+  // صفوف العناوين (كلمات فقط) تُستبعد
+  const rows = lines.map(l => ({ l, dl: l.includes('⚠'), t: tokenize(l, opts.csv) })).filter(r => r.t.length >= 2 && r.t.filter(t => t.k !== 'lab').length >= 2);
+  if (rows.length < 2) return null;
+  // عدد الأعمدة الغالب
+  const cnt = {}; rows.forEach(r => cnt[r.t.length] = (cnt[r.t.length] || 0) + 1);
+  const nc = +Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a] || b - a)[0];
+  const body = rows.filter(r => r.t.length === nc); if (body.length < 2) return null;
+  // نوع كل عمود = النوع الغالب (٦٠٪ على الأقل)
+  const types = [];
+  for (let c = 0; c < nc; c++) { const h = {}; body.forEach(r => { const ty = tokType(r.t[c]); h[ty] = (h[ty] || 0) + 1; });
+    const [best, n] = Object.entries(h).sort((a, b) => b[1] - a[1])[0]; types.push(n / body.length >= 0.6 ? best : 'X'); }
+  // عمود ID حقيقي: قيم غير مكررة (تسلسل أو أسماء)، وإلا فهو عمود آخر (أطوال، مساحات...)
+  types.forEach((ty, c) => { if (ty !== 'ID') return; const v = body.map(r => r.t[c].s); if (new Set(v).size < v.length * 0.8) types[c] = 'X'; });
+  // أزواج الإحداثيات: كل شرق مع أقرب شمال، أو كل عمودين درجات متتاليين
+  const groups = [], used = new Set();
+  types.forEach((ty, c) => { if (used.has(c)) return;
+    if (ty === 'E' || ty === 'N') { const want = ty === 'E' ? 'N' : 'E'; const o = types.findIndex((t2, j) => t2 === want && !used.has(j) && j > c);
+      if (o > 0) { used.add(c); used.add(o); groups.push({ kind: 'utm', e: ty === 'E' ? c : o, n: ty === 'N' ? c : o, start: c }); } }
+    else if (ty === 'DEG') { const o = types.findIndex((t2, j) => t2 === 'DEG' && !used.has(j) && j > c);
+      if (o > 0) { used.add(c); used.add(o); groups.push({ kind: 'll', x: c, y: o, start: c }); } } });
+  if (!groups.length) return null;
+  // رقم النقطة لكل مجموعة: أقرب عمود ID قبلها (أو بعدها إن لم يوجد)
+  groups.forEach((g, i) => { const lo = i ? groups[i - 1].start : -1;
+    let id = -1; for (let c = g.start - 1; c > lo; c--) if (types[c] === 'ID' && !used.has(c)) { id = c; break; }
+    if (id < 0 && groups.length === 1) id = types.findIndex((t, c) => t === 'ID' && !used.has(c));
+    if (id >= 0) used.add(id); g.id = id; });
+  // خطوط العرض والطول: العرض أصغر في منطقتنا
+  groups.filter(g => g.kind === 'll').forEach(g => { const mx = body.reduce((s, r) => s + r.t[g.x].v, 0), my = body.reduce((s, r) => s + r.t[g.y].v, 0);
+    g.lat = mx <= my ? g.x : g.y; g.lon = mx <= my ? g.y : g.x; types[g.lat] = 'LAT'; types[g.lon] = 'LON'; });
+  // صف ناقص أو فيه زيادة: طابق قيمه مع أنواع الأعمدة بالترتيب
+  const want = c => types[c] === 'LAT' || types[c] === 'LON' ? 'DEG' : types[c];
+  function align(toks) { const res = new Array(nc).fill(null); let j = 0;
+    for (let c = 0; c < nc && j < toks.length; c++) { const tt = tokType(toks[j]), w = want(c);
+      if (tt === w) { res[c] = toks[j]; j++; }
+      else if (w === 'ID' || w === 'X') { if (w === 'X' && tt !== 'E' && tt !== 'N' && tt !== 'DEG') { res[c] = toks[j]; j++; } }
+      else { j++; c--; } }
+    return res; }
+  const out = []; let auto = pts.length + 1; const lastId = {};
+  for (const r0 of rows) {
+    let r = r0, fixedRow = false;
+    if (r.t.length !== nc) { const al = align(r.t); if (!groups.some(g => g.kind === 'utm' ? al[g.e] && al[g.n] : al[g.x] && al[g.y])) { parseLines([r.l], opts, auto).forEach(p => { out.push(p); auto++; }); continue; }
+      r = { ...r, t: al }; fixedRow = true; }
+    for (const [gi, g] of groups.entries()) {
+      if (g.kind === 'utm' ? !r.t[g.e] || !r.t[g.n] || r.t[g.e].v == null || r.t[g.n].v == null : !r.t[g.x] || !r.t[g.y] || r.t[g.x].v == null || r.t[g.y].v == null) continue;
+      // رقم النقطة: من عموده، وإن ضاع يُستنتج من التسلسل (السابق + ١)
+      let no = g.id >= 0 && r.t[g.id] ? r.t[g.id].s : null, guessed = false;
+      if (no === null && g.id >= 0 && /^\d+$/.test(lastId[g.start] || '')) { no = String(+lastId[g.start] + 1); guessed = true; }
+      if (no === null) no = String(auto);
+      lastId[g.start] = no;
+      if (fixedRow || guessed) { const pt = g.kind === 'utm' ? { no, sys: 'utm', a: r.t[g.e].v, b: r.t[g.n].v } : { no, sys: 'll', a: r.t[g.lon].v, b: r.t[g.lat].v };
+        out.push({ ...pt, doubt: true, _g: gi }); auto++; continue; }
+      if (g.kind === 'utm') { const E = r.t[g.e].v, N = r.t[g.n].v; if (tokType(r.t[g.e]) !== 'E' || tokType(r.t[g.n]) !== 'N') { out.push({ no, sys: 'utm', a: E, b: N, doubt: true, _g: gi }); auto++; continue; }
+        out.push({ ...(r.dl ? { doubt: true } : {}), no, sys: 'utm', a: E, b: N, _g: gi }); }
+      else out.push({ ...(r.dl || r.t[g.lat].k === 'num' && r.t[g.lat].dec < 4 ? { doubt: true } : {}), no, sys: 'll', a: r.t[g.lon].v, b: r.t[g.lat].v, _g: gi });
+      auto++;
+    }
+  }
+  const per = groups.length > 1 ? ` · ${arD(groups.length)} جداول متجاورة` : '';
+  lastSchema = `🔎 تعرّفت على الجدول: ${types.map(t => COL_NAME[t]).join(' ← ')}${per} — ${arD(body.length)} صفوف` + (groups.some(g => g.id < 0) ? ' (بدون عمود رقم النقطة: رُقّمت تلقائياً)' : '');
+  // جدولان متجاوران: نقاط الأول ثم الثاني
+  out.forEach((p, i) => p._i = i); out.sort((x, y) => (x._g || 0) - (y._g || 0) || x._i - y._i); out.forEach(p => { delete p._g; delete p._i; });
+  return out;
+}
+function parseText(raw, opts = {}) {
+  const lines = normDigits(raw).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  lastSchema = '';
+  const smart = parseSmart(lines, opts);
+  if (smart && smart.length) return smart;
+  const out = parseLines(lines, opts);
+  if (out.length) lastSchema = '🔎 قُرئ كل سطر لوحده (لم يُعرف شكل جدول ثابت)';
   return out;
 }
 
@@ -731,6 +833,7 @@ function showReview(list, meta = {}) {
     <td><input value="${esc(p.no)}" data-k="no" style="width:56px">${p.fixed ? '<span class="sus-tag ai">صُحّحت خانة — تأكد</span>' : p.doubt ? '<span class="sus-tag ai">رقم غير واضح</span>' : sus.has(i) ? '<span class="sus-tag">راجعها</span>' : ''}</td>
     <td><input class="num" value="${fmtA(p)}" data-k="a" inputmode="decimal"></td>
     <td><input class="num" value="${fmtB(p)}" data-k="b" inputmode="decimal"></td></tr>`).join('');
+  $('revSchema').textContent = lastSchema;
   $('revCount').textContent = list.length + ' نقطة' + (sus.size ? ` · ${sus.size} للتدقيق` : '');
   $('review').hidden = false; $('review').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -782,6 +885,7 @@ async function readImages(files) {
         if (r.notes) meta.notes = (meta.notes ? meta.notes + ' · ' : '') + r.notes;
         for (const p of r.points) { const k = `${p.no}|${p.a}|${p.b}`; if (!seen.has(k)) { seen.add(k); list.push(p); } }
       }
+      lastSchema = `✨ القراءة الذكية: ${list.length} نقطة · ${meta.system === 'll' ? 'طول وعرض' : 'شرق وشمال'}${meta.zone ? ' · نطاق ' + meta.zone : ''}`;
       stat(`✨ قُرئت ${list.length} نقطة بالقراءة الذكية في ${f((Date.now() - t0) / 1000, 0)} ث` + (meta.notes ? `<br>ملاحظة: ${esc(meta.notes)}` : ''));
     } catch (err) {
       console.warn(err); list = null;
@@ -823,6 +927,7 @@ Rules:
 - UTM: Easting usually 6 digits before the decimal (100000-900000), Northing usually 7 digits (1700000-3700000). Columns may be labelled E/N, X/Y, شرق/شمال, الشرقيات/الشماليات — put the 6-digit value in "e" and the 7-digit value in "n" even if the columns are swapped.
 - Geographic: put longitude in "e" and latitude in "n" as decimal degrees; convert DMS (e.g. 26°25'30.5") to decimal degrees.
 - "no" = the point label exactly as written (1, 2, P3, BM1, أ ...). If there is none, number them in order.
+- First work out the table structure from the headers and the values: which column is the point number (may be absent), which is Easting/X/شرق, which is Northing/Y/شمال, or latitude/longitude. Columns can be in any order and there may be several tables side by side or one under another — read all of them.
 - Skip headers, totals, areas, side lengths, bearings and anything that is not a point coordinate.
 - If the same point appears twice, include it once.
 - Set "doubt": true for any point where a digit is blurry, cut off or ambiguous.
@@ -863,6 +968,9 @@ async function tessRead(files, bar) {
           const cells = [];
           for (const cell of row) {
             const img = cropCanvas(pg, cell); let t = (await worker.recognize(img)).data.text.trim().replace(/\s+/g, ' ');
+            // خلية ضيقة (رقم نقطة من خانة أو خانتين) والقراءة فشلت ← أعد بوضع «حرف واحد» ثم «كلمة واحدة»
+            if (!t && cell[2] - cell[0] < (cell[3] - cell[1]) * 2.2) { for (const m of ['10', '8']) { await worker.setParameters({ ...NUM, tessedit_pageseg_mode: m });
+              t = (await worker.recognize(img)).data.text.trim().replace(/\s+/g, ''); if (t) break; } await worker.setParameters(NUM); }
             // ليس رقماً عادياً؟ (درجات/دقائق/ثواني مثلاً) ← أعد القراءة بالرموز
             if (t && !/^(-?\d{1,7}(\.\d+)?\s*)+$/.test(t)) { await worker.setParameters(DMS); const t2 = (await worker.recognize(img)).data.text.trim(); await worker.setParameters(NUM);
               if (/[°'"]/.test(t2)) t = t2; }
