@@ -479,7 +479,7 @@ nav button.on svg{color:var(--gold)}
     <p class="hint">الصوت: صفارة هادئة من ٢٠ م، ثم صفارة عالية جداً تتسارع من ٥ م، ثم إنذار متواصل مع اهتزاز عند مسافة الوصول. ارفع صوت الجوال للآخر.</p>
     <p class="hint"><b>المرجع:</b> أغلب المخططات الحديثة على WGS84/KSA-GRF17. الصكوك والمخططات القديمة قد تكون على «عين العبد 1970» والفرق بينهما قد يصل لأكثر من ٢٠٠ م. تحويل عين العبد الرسمي (EPSG:1055) دقته نحو ±١٨ م، لذلك استخدم «المعايرة على نقطة معلومة» لإزالة الفرق المتبقي.</p>
     <p class="hint">الانحراف الافتراضي ٣° (الرياض والشرقية تقريباً). جدة والغربية حوالي ٣٫٥°. يصحّح البوصلة إلى الشمال الحقيقي.</p>
-    <p class="hint" id="ver">الإصدار 2.7</p>
+    <p class="hint" id="ver">الإصدار 2.8</p>
   </div>
 </section>
 </main>
@@ -615,11 +615,12 @@ function parseText(raw, opts = {}) {
   let auto = pts.length + 1;
   for (let line of lines) {
     line = line.trim(); if (!line) continue;
+    const dl = line.includes('⚠'); line = line.replace(/⚠/g, ' ');
     if (opts.csv) line = line.replace(/[;\t|]/g, ' ').replace(/,(?=\S)/g, ' ').replace(/"/g, '');
     // 1) درجات/دقائق/ثواني
     const dm = [...line.matchAll(DMS_RE)].map(m => +m[1] + m[2] / 60 + m[3] / 3600);
     if (dm.length >= 2) { let [lat, lon] = dm; if (lat > lon) [lat, lon] = [lon, lat];
-      out.push({ no: String(auto++), sys: 'll', a: lon, b: lat }); continue; }
+      out.push({ ...(dl ? { doubt: true } : {}), no: String(auto++), sys: 'll', a: lon, b: lat }); continue; }
     // تصحيح الفاصلة العشرية من قارئ الصور «359300,391»
     line = line.replace(/(\d),(\d{1,4})(?!\d)/g, '$1.$2');
     // رقم النقطة إن كان نصاً مثل P1 أو BM-2
@@ -633,12 +634,17 @@ function parseText(raw, opts = {}) {
       else if (!Number.isInteger(v) && Math.abs(v) <= 180 && E === null) dec.push(v);
       else if (no === null && Number.isInteger(v) && v >= 0 && v < 100000 && E === null && N === null && !dec.length) no = String(v);
     }
-    if (E !== null && N !== null) out.push({ no: no ?? String(auto), sys: 'utm', a: E, b: N });
+    // درجات/دقائق/ثواني بدون رموز (مثل 262530.52 = 26°25'30.52") — شائع بعد قراءة الصور
+    const cdms = v => { const t = Math.abs(v), ip = Math.floor(t), str = String(ip); if (str.length < 6 || str.length > 7) return null;
+      const dd = +str.slice(0, -4), mm = +str.slice(-4, -2), ss = +str.slice(-2) + (t - ip); return mm < 60 && ss < 60 && dd <= 180 ? dd + mm / 60 + ss / 3600 : null; };
+    if (N === null) { const c = nums.map(cdms).filter(v => v !== null);
+      if (c.length >= 2) { const [x, y] = c; out.push({ ...(dl ? { doubt: true } : {}), no: no ?? String(auto), sys: 'll', a: Math.max(x, y), b: Math.min(x, y), doubt: true }); auto++; continue; } }
+    if (E !== null && N !== null) out.push({ ...(dl ? { doubt: true } : {}), no: no ?? String(auto), sys: 'utm', a: E, b: N });
     else if (dec.length >= 2) {
       // في منطقتنا خط العرض أصغر من خط الطول دائماً
       let [x, y] = dec, lat, lon;
       if (Math.abs(x) > 90) { lon = x; lat = y; } else if (Math.abs(y) > 90) { lat = x; lon = y; } else { lat = Math.min(x, y); lon = Math.max(x, y); }
-      out.push({ no: no ?? String(auto), sys: 'll', a: lon, b: lat });
+      out.push({ ...(dl ? { doubt: true } : {}), no: no ?? String(auto), sys: 'll', a: lon, b: lat });
     } else continue;
     auto++;
   }
@@ -720,9 +726,9 @@ function showReview(list, meta = {}) {
     const typ = med(ds);
     ds.forEach((d, i) => { if (d > Math.max(1500, typ * 8)) sus.add(i); });
   }
-  list.forEach((p, i) => { if (p.doubt) sus.add(i); });
+  list.forEach((p, i) => { if (p.doubt || p.fixed) sus.add(i); });
   $('tReview').innerHTML = list.map((p, i) => `<tr class="${sus.has(i) ? 'sus' : ''}"><td><input type="checkbox" checked aria-label="اعتماد"></td>
-    <td><input value="${esc(p.no)}" data-k="no" style="width:56px">${p.doubt ? '<span class="sus-tag ai">رقم غير واضح</span>' : sus.has(i) ? '<span class="sus-tag">راجعها</span>' : ''}</td>
+    <td><input value="${esc(p.no)}" data-k="no" style="width:56px">${p.fixed ? '<span class="sus-tag ai">صُحّحت خانة — تأكد</span>' : p.doubt ? '<span class="sus-tag ai">رقم غير واضح</span>' : sus.has(i) ? '<span class="sus-tag">راجعها</span>' : ''}</td>
     <td><input class="num" value="${fmtA(p)}" data-k="a" inputmode="decimal"></td>
     <td><input class="num" value="${fmtB(p)}" data-k="b" inputmode="decimal"></td></tr>`).join('');
   $('revCount').textContent = list.length + ' نقطة' + (sus.size ? ` · ${sus.size} للتدقيق` : '');
@@ -842,28 +848,151 @@ function shrink(file, max) { return new Promise((res, rej) => { const im = new I
 /* ---------- القراءة العادية دون إنترنت (Tesseract) ---------- */
 async function tessRead(files, bar) {
   if (!window.Tesseract) { toast('قارئ الصور يحتاج إنترنت أول مرة — الصق النص بدلاً منه'); return null; }
-  let worker, text = '';
+  let worker, lines = [];
   try {
-    worker = await Tesseract.createWorker('eng', 1, { logger: m => { if (m.status === 'recognizing text') bar.style.width = (15 + m.progress * 85) + '%'; } });
-    // الأرقام فقط ← أخطاء أقل بكثير
-    await worker.setParameters({ tessedit_char_whitelist: '0123456789.,-°\'" \nNSEWPpAB', tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
-    for (const fl of files) { const r = await worker.recognize(await prep(URL.createObjectURL(fl))); text += r.data.text + '\n'; }
+    worker = await Tesseract.createWorker('eng', 1);
+    for (let fi = 0; fi < files.length; fi++) {
+      const pg = await loadGray(files[fi]), tb = tableCells(pg);
+      stat(`قراءة ${tb.rows.length ? tb.rows.length + ' صف' : 'الصورة'}${files.length > 1 ? ` (صورة ${fi + 1}/${files.length})` : ''}…`);
+      if (tb.rows.length) {
+        // كل خلية لوحدها كسطر واحد (PSM 7) بأرقام فقط ← أدق بكثير من قراءة الصورة كاملة
+        const NUM = { tessedit_char_whitelist: '0123456789.- ', tessedit_pageseg_mode: '7', preserve_interword_spaces: '1' }, DMS = { tessedit_char_whitelist: '0123456789.-°\'"NSEW ', tessedit_pageseg_mode: '7' };
+        await worker.setParameters(NUM);
+        const total = tb.rows.reduce((n, r) => n + r.length, 0); let k = 0;
+        for (const row of tb.rows) {
+          const cells = [];
+          for (const cell of row) {
+            const img = cropCanvas(pg, cell); let t = (await worker.recognize(img)).data.text.trim().replace(/\s+/g, ' ');
+            // ليس رقماً عادياً؟ (درجات/دقائق/ثواني مثلاً) ← أعد القراءة بالرموز
+            if (t && !/^(-?\d{1,7}(\.\d+)?\s*)+$/.test(t)) { await worker.setParameters(DMS); const t2 = (await worker.recognize(img)).data.text.trim(); await worker.setParameters(NUM);
+              if (/[°'"]/.test(t2)) t = t2; }
+            // قراءة ثانية من الصورة الرمادية الأصلية: إن اختلفت الأرقام يُعلَّم الصف للتدقيق
+            // تصويت ٣ قراءات: إن اتفقت قراءتان تُعتمد، وإلا يُعلَّم الصف للتدقيق
+            if (/\d{4}/.test(t)) {
+              const dg = v => v.replace(/[^\d. ]/g, '').trim().replace(/\s+/g, ' ');
+              const t2 = dg((await worker.recognize(cropCanvas(pg, cell, pg.gray))).data.text);
+              if (t2 && t2 !== dg(t)) {
+                await worker.setParameters({ ...NUM, tessedit_pageseg_mode: '13' });
+                const t3 = dg((await worker.recognize(cropCanvas(pg, cell))).data.text); await worker.setParameters(NUM);
+                if (t3 === t2) t = t2; else if (t3 !== dg(t)) t += ' ⚠';
+              } }
+            // أول خلية قصيرة = رقم النقطة؛ أعد قراءتها بالحروف (P1، BM2، A ...)
+            if (!cells.length && row.length >= 3 && t.replace(' ⚠', '').length <= 4) { await worker.setParameters({ tessedit_char_whitelist: '0123456789ABCDEFGHJKLMNPRSTUVWXYZ-', tessedit_pageseg_mode: '7' });
+              const t3 = (await worker.recognize(img)).data.text.trim().replace(/\s+/g, ''); await worker.setParameters(NUM); if (/^[A-Z]{1,3}-?\d{1,4}$/.test(t3)) t = t3; }
+            cells.push(t); k++;
+            bar.style.width = (8 + 90 * ((fi + k / total) / files.length)) + '%';
+          }
+          lines.push(cells.filter(Boolean).join('  '));
+        }
+      } else {
+        await worker.setParameters({ tessedit_char_whitelist: '0123456789.,-°\'" \n', tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' });
+        if (!pg.clean) pg.clean = inkCanvas(pg); const r = await worker.recognize(pg.clean); lines.push(...r.data.text.split('\n'));
+      }
+    }
+    const text = lines.join('\n');
     $('txt').value = text; $('pasteBox').hidden = false;
-    if (!$('ocrStat').innerHTML) stat('قراءة عادية — للجداول الصعبة فعّل القراءة الذكية من «الأدوات»');
-    return parseText(text);
+    stat(`قراءة عادية: ${lines.filter(l => l.trim()).length} سطر — راجع الأرقام، وللجداول الصعبة فعّل القراءة الذكية من «الأدوات»`);
+    return repairPoints(parseText(text));
   } catch (err) { console.warn(err); toast('تعذّرت القراءة — الصق النص يدوياً'); return null; }
   finally { try { await worker?.terminate(); } catch (e) {} }
 }
-// تحسين الصورة: تكبير وتدرّج رمادي وعتبة تكيّفية بسيطة
-function prep(url) { return new Promise((res, rej) => { const im = new Image(); im.onerror = rej; im.onload = () => {
-  const sc = Math.min(2.2, 2600 / Math.max(im.width, im.height)), c = document.createElement('canvas');
-  c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc);
-  const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(im, 0, 0, c.width, c.height);
-  const d = x.getImageData(0, 0, c.width, c.height), a = d.data; let sum = 0;
-  for (let i = 0; i < a.length; i += 4) { const g = 0.3*a[i] + 0.59*a[i+1] + 0.11*a[i+2]; a[i] = g; sum += g; }
-  const mean = sum / (a.length / 4), th = mean * 0.82;
-  for (let i = 0; i < a.length; i += 4) { const g = a[i] < th ? Math.max(0, a[i] * 0.5) : Math.min(255, a[i] * 1.25 + 20); a[i] = a[i+1] = a[i+2] = g; }
-  x.putImageData(d, 0, 0); res(c); }; im.src = url; }); }
+
+/* ---------- تجهيز الصورة: تكبير، رمادي، عتبة Otsu، ومسح خطوط الجدول ---------- */
+function loadGray(file) { return new Promise((res, rej) => { const im = new Image(); im.onerror = () => rej(new Error('صورة غير صالحة'));
+  im.onload = () => {
+    const sc = Math.max(1, Math.min(3, 2200 / Math.max(im.width, im.height))), W = Math.round(im.width * sc), H = Math.round(im.height * sc);
+    const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d', { willReadFrequently: true });
+    x.imageSmoothingQuality = 'high'; x.drawImage(im, 0, 0, W, H);
+    const d = x.getImageData(0, 0, W, H).data, g = new Uint8Array(W * H), hist = new Array(256).fill(0);
+    for (let i = 0, j = 0; j < g.length; i += 4, j++) { g[j] = (0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]) | 0; hist[g[j]]++; }
+    // عتبة محلية (Bradley): كل بكسل يُقارن بمتوسط ما حوله ← تتحمل الظل والإضاءة غير المتساوية وتصوير الشاشات
+    const I = new Float64Array((W + 1) * (H + 1));
+    for (let y = 1; y <= H; y++) { let row = 0; for (let xx = 1; xx <= W; xx++) { row += g[(y - 1) * W + xx - 1]; I[y * (W + 1) + xx] = I[(y - 1) * (W + 1) + xx] + row; } }
+    const r = Math.max(15, Math.round(Math.max(W, H) / 24)), dark = new Uint8Array(W * H);
+    let gmin = 255, gmax = 0; for (let j = 0; j < g.length; j += 7) { if (g[j] < gmin) gmin = g[j]; if (g[j] > gmax) gmax = g[j]; }
+    const minContrast = Math.max(12, (gmax - gmin) * 0.12);
+    for (let y = 0; y < H; y++) { const y1 = Math.max(0, y - r), y2 = Math.min(H, y + r + 1);
+      for (let xx = 0; xx < W; xx++) { const x1 = Math.max(0, xx - r), x2 = Math.min(W, xx + r + 1);
+        const mean = (I[y2 * (W + 1) + x2] - I[y1 * (W + 1) + x2] - I[y2 * (W + 1) + x1] + I[y1 * (W + 1) + x1]) / ((x2 - x1) * (y2 - y1));
+        const v = g[y * W + xx]; dark[y * W + xx] = v < mean * 0.82 && mean - v > minContrast ? 1 : 0; } }
+    // خطوط أفقية: مقاطع داكنة متصلة أطول من ١/١٤ عرض الصورة (الأرقام لا تصل لهذا الطول)
+    const line = new Uint8Array(W * H), minH = Math.max(50, W / 14);
+    for (let y = 0; y < H; y++) { let s0 = -1; for (let xx = 0; xx <= W; xx++) { const v = xx < W && dark[y * W + xx];
+      if (v && s0 < 0) s0 = xx; else if (!v && s0 >= 0) { if (xx - s0 >= minH) for (let k = s0; k < xx; k++) line[y * W + k] = 1; s0 = -1; } } }
+    // تمديد قليل لمسح حواف الخطوط الأفقية الباهتة (الرأسية تُعالج لاحقاً لكل صف)
+    const ink = new Uint8Array(W * H);
+    for (let j = 0; j < ink.length; j++) ink[j] = dark[j] && !line[j] && !(line[j - W] || line[j + W]) ? 1 : 0;
+    res({ W, H, ink, clean: null, gray: c });
+  }; im.src = URL.createObjectURL(file); }); }
+
+// تقسيم الصورة إلى صفوف ثم خلايا حسب الفراغات (يعمل مع الجداول والقوائم المكتوبة)
+function tableCells(pg) {
+  const { W, H, ink } = pg, rowCnt = new Uint32Array(H);
+  for (let y = 0; y < H; y++) { let c = 0; for (let x = 0; x < W; x++) c += ink[y * W + x]; rowCnt[y] = c; }
+  // صفوف النص: كثافة حبر أعلى من ١٥٪ من الصفوف الكثيفة (الخطوط الرأسية وحدها أقل بكثير)
+  const nz = [...rowCnt].filter(v => v > 0).sort((a, b) => a - b), ref = nz[Math.floor(nz.length * 0.9)] || 0;
+  const minInk = Math.max(15, ref * 0.15); let bands = [], y0 = -1;
+  for (let y = 0; y <= H; y++) { const on = y < H && rowCnt[y] > minInk; if (on && y0 < 0) y0 = y; else if (!on && y0 >= 0) { bands.push([y0, y]); y0 = -1; } }
+  if (!bands.length) { pg.clean = inkCanvas(pg); return { rows: [] }; }
+  const medH = bands.map(b => b[1] - b[0]).sort((a, b) => a - b)[bands.length >> 1];
+  const merged = []; for (const b of bands) { const l = merged[merged.length - 1];
+    if (l && b[0] - l[1] < medH * 0.35) l[1] = b[1]; else merged.push([...b]); }
+  const tall = Math.max(...merged.map(b => b[1] - b[0]));
+  bands = merged.filter(b => b[1] - b[0] >= Math.max(12, tall * 0.4));
+  // الخط الرأسي الحقيقي يمتد إلى الفراغ فوق الصف وتحته؛ خطوط الأرقام لا تمتد
+  const darkNear = (x, y) => { if (y < 0 || y >= H) return false; for (let dx = -6; dx <= 6; dx++) { const xx = x + dx; if (xx >= 0 && xx < W && ink[y * W + xx]) return true; } return false; };
+  const gapHit = (x, ya, yb) => { let n = 0; for (const t of [0.2, 0.35, 0.5, 0.65, 0.8]) if (darkNear(x, Math.round(ya + (yb - ya) * t))) n++; return n >= 2; };
+  const rows = [];
+  bands.forEach(([a, b], bi) => {
+    const h = b - a, ga = bi ? bands[bi - 1][1] : Math.max(0, a - h * 0.5), gb = bi < bands.length - 1 ? bands[bi + 1][0] : Math.min(H - 1, b + h * 0.5);
+    const colCnt = new Uint32Array(W);
+    for (let y = a; y < b; y++) for (let x = 0; x < W; x++) colCnt[x] += ink[y * W + x];
+    for (let x = 0; x < W; x++) if (colCnt[x] > h * 0.55 && (gapHit(x, ga, a) || gapHit(x, b, gb))) {   // خط جدول ← امسحه في هذا الصف
+      for (let xx = Math.max(0, x - 5); xx <= Math.min(W - 1, x + 5); xx++) { if (colCnt[xx] < h * 0.3 && xx !== x) continue; colCnt[xx] = 0; for (let y = a; y < b; y++) ink[y * W + xx] = 0; } }
+    // فاصل بين خليتين = فراغ أعرض من ارتفاع الرقم تقريباً
+    // مقاطع الحبر، ثم حذف البقايا الرفيعة الضعيفة (بقايا خطوط) ثم تجميعها في خلايا
+    let segs = [], sx = -1;
+    for (let x = 0; x <= W; x++) { const on = x < W && colCnt[x] > 0; if (on && sx < 0) sx = x; else if (!on && sx >= 0) { segs.push([sx, x]); sx = -1; } }
+    segs = segs.filter(([u, v]) => { let m = 0; for (let x = u; x < v; x++) m = Math.max(m, colCnt[x]); return !(v - u < h * 0.15 && m < h * 0.6) && m > h * 0.08; });
+    const cells = [];
+    for (const [u, v] of segs) { const l = cells[cells.length - 1]; if (l && u - l[2] <= h * 0.9) l[2] = v; else cells.push([u, a, v, b]); }
+    const real = cells.filter(c => c[2] - c[0] > h * 0.35);
+    if (real.length) rows.push(real);
+  });
+  pg.clean = inkCanvas(pg);
+  return { rows };
+}
+function inkCanvas({ W, H, ink }) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'), id = x.createImageData(W, H);
+  for (let j = 0, i = 0; j < ink.length; j++, i += 4) { const v = ink[j] ? 0 : 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; }
+  x.putImageData(id, 0, 0); return c;
+}
+function cropCanvas(pg, [x0, y0, x1, y1], src) {
+  const pad = Math.round((y1 - y0) * 0.35), c = document.createElement('canvas');
+  c.width = x1 - x0 + 2 * pad; c.height = y1 - y0 + 2 * pad; const x = c.getContext('2d');
+  x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(src || pg.clean, x0, y0, x1 - x0, y1 - y0, pad, pad, x1 - x0, y1 - y0);
+  return c;
+}
+
+/* ---------- تصحيح أخطاء القراءة الشائعة بمقارنة الصفوف ببعضها ---------- */
+function repairPoints(list) {
+  const utm = list.filter(p => p.sys === 'utm'); if (utm.length < 2) return list;
+  const med = v => { const s = [...v].sort((a, b) => a - b); return s[s.length >> 1]; };
+  const mE = med(utm.map(p => p.a)), mN = med(utm.map(p => p.b));
+  const fix = (v, m) => {                       // رقم بعيد جداً؟ جرّب تغيير خانة واحدة لتطابق بقية الصفوف
+    if (Math.abs(v - m) < 3000) return null;
+    const s = f(v, 3).split(''), ms = f(m, 3).padStart(s.length, '0').split('');
+    for (let i = 0; i < s.length; i++) { if (s[i] === '.' || s[i] === ms[i]) continue;
+      const t = [...s]; t[i] = ms[i]; const nv = parseFloat(t.join('')); if (Math.abs(nv - m) < 3000) return nv; }
+    return null;
+  };
+  for (const p of utm) {
+    const e = fix(p.a, mE), n = fix(p.b, mN);
+    if (e !== null) { p.a = e; p.fixed = true; } if (n !== null) { p.b = n; p.fixed = true; }
+    if (p.a < 160000 || p.a > 840000 || Math.abs(p.a - mE) > 3000 || Math.abs(p.b - mN) > 3000) p.doubt = true;
+  }
+  return list;
+}
 
 /* ================= الموقع ================= */
 let me = null, meRaw = null, watch = null, buf = [], hold = false, lastFix = 0;
