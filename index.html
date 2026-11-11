@@ -352,7 +352,9 @@ nav button.on svg{color:var(--gold)}
       </div>
       <div class="mapMsg" id="mapMsg" hidden></div>
     </div>
-    <p class="hint" id="viewHint" style="text-align:center;margin-top:4px">امسك الجوال أفقياً — أعلى الجوال = اتجاه سيرك</p>
+    <p class="hint" id="viewHint" style="text-align:center;margin-top:4px"></p>
+    <p class="hint" id="headSrc" style="text-align:center;margin-top:0;font-weight:600"></p>
+    <button class="btn sm" id="bOrient" type="button" style="display:flex;margin:6px auto 0"></button>
     <div id="reach" hidden>✔ وصلت إلى النقطة</div>
     <div class="offs" id="offs" hidden>
       <div class="off"><span id="oNsL">شمال</span><b class="num" id="oNs">—</b></div>
@@ -477,7 +479,7 @@ nav button.on svg{color:var(--gold)}
     <p class="hint">الصوت: صفارة هادئة من ٢٠ م، ثم صفارة عالية جداً تتسارع من ٥ م، ثم إنذار متواصل مع اهتزاز عند مسافة الوصول. ارفع صوت الجوال للآخر.</p>
     <p class="hint"><b>المرجع:</b> أغلب المخططات الحديثة على WGS84/KSA-GRF17. الصكوك والمخططات القديمة قد تكون على «عين العبد 1970» والفرق بينهما قد يصل لأكثر من ٢٠٠ م. تحويل عين العبد الرسمي (EPSG:1055) دقته نحو ±١٨ م، لذلك استخدم «المعايرة على نقطة معلومة» لإزالة الفرق المتبقي.</p>
     <p class="hint">الانحراف الافتراضي ٣° (الرياض والشرقية تقريباً). جدة والغربية حوالي ٣٫٥°. يصحّح البوصلة إلى الشمال الحقيقي.</p>
-    <p class="hint" id="ver">الإصدار 2.6</p>
+    <p class="hint" id="ver">الإصدار 2.7</p>
   </div>
 </section>
 </main>
@@ -506,7 +508,7 @@ const store = {
 };
 
 /* ================= الإعدادات ================= */
-const set = Object.assign({ zone: 'auto', tol: 'auto', decl: 3, sun: '0', voice: '1', dat: 'wgs', maxAcc: '15' }, store.get('pf_set', {}));
+const set = Object.assign({ zone: 'auto', tol: 'auto', decl: 3, sun: '0', voice: '1', dat: 'wgs', maxAcc: '15', orient: 'auto' }, store.get('pf_set', {}));
 function applySet() {
   $('stZone').value = set.zone; $('stTol').value = set.tol; $('stDecl').value = set.decl; $('stSun').value = set.sun; $('stVoice').value = set.voice; $('stDat').value = set.dat; $('stMax').value = set.maxAcc;
   document.body.classList.toggle('sun', set.sun === '1');
@@ -886,14 +888,16 @@ const shiftLL = (lat, lon, dE, dN) => { const [mx, my] = mPerDeg(lat); return [l
 
 /* ---------- مرشّح كالمان (سرعة ثابتة) لتنعيم الموقع أثناء المشي ---------- */
 const KF = { o: null, t: 0, x: [0, 0, 0, 0], P: null };
-function kfStep(lat, lon, acc, t) {
+function kfStep(lat, lon, acc, t, spd) {
   if (!KF.o) { KF.o = [lat, lon]; KF.t = t; KF.x = [0, 0, 0, 0]; KF.P = [[acc * acc, 0], [0, 4]].map(r => r.slice()); KF.Q = [KF.P.map(r => r.slice()), KF.P.map(r => r.slice())]; return [lat, lon]; }
   const [mx, my] = mPerDeg(KF.o[0]), zx = (lon - KF.o[1]) * mx, zy = (lat - KF.o[0]) * my;
   const dt = Math.min(5, Math.max(0.05, (t - KF.t) / 1000)); KF.t = t;
-  const q = 0.6 * 0.6, R = Math.max(0.05, acc * acc / 2);         // تسارع المشي ٠٫٦ م/ث² · ضوضاء القياس من الدقة المبلّغة
+  // واقف (السرعة < ٠٫٤ م/ث) ← تنعيم أقوى؛ ماشٍ ← استجابة أسرع
+  const q = spd != null && spd < 0.4 ? 0.05 : 0.36, R = Math.max(0.05, acc * acc / 2);         // تسارع المشي ٠٫٦ م/ث² · ضوضاء القياس من الدقة المبلّغة
   const out = [];
   for (let ax = 0; ax < 2; ax++) {
     const z = ax ? zy : zx; let pos = KF.x[ax], vel = KF.x[ax + 2], P = KF.Q[ax];
+    vel *= Math.exp(-dt / 2);                                        // توهين السرعة: الواقف لا ينجرف
     pos += vel * dt;                                                // التنبؤ
     const p00 = P[0][0] + dt * (P[1][0] + P[0][1]) + dt * dt * P[1][1] + q * dt ** 4 / 4,
           p01 = P[0][1] + dt * P[1][1] + q * dt ** 3 / 2, p11 = P[1][1] + q * dt * dt;
@@ -935,7 +939,7 @@ function onPos(pos) {
     const r = robustMean(buf); lat = r.lat; lon = r.lon; acc = r.acc; extra = r;
   } else {
     if (KF.o && distBear(KF.o[0], KF.o[1], c.latitude, c.longitude).d > 2000) kfReset();
-    const k = kfStep(c.latitude, c.longitude, c.accuracy, now);
+    const k = kfStep(c.latitude, c.longitude, c.accuracy, now, c.speed);
     lat = k[0]; lon = k[1]; acc = Math.min(c.accuracy, Math.max(k[2] || c.accuracy, c.accuracy * 0.6));
   }
   meRaw = { lat, lon };
@@ -974,15 +978,30 @@ setInterval(() => { if (watch !== null && lastFix && Date.now() - lastFix > 1500
 /* ================= البوصلة ================= */
 let heading = null, oriOn = false;
 const ORI_EV = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
+// اتجاه البوصلة الصحيح مهما كانت إمالة الجوال (معادلة W3C) — القديمة كانت تخطئ إذا لم يكن الجوال أفقياً تماماً
+function tiltHeading(alpha, beta, gamma) {
+  const x = beta * D2R, y = gamma * D2R, z = alpha * D2R, cX = Math.cos(x), cY = Math.cos(y), cZ = Math.cos(z), sX = Math.sin(x), sY = Math.sin(y), sZ = Math.sin(z);
+  const Vx = -cZ * sY - sZ * sX * cY, Vy = -sZ * sY + cZ * sX * cY;
+  let h = Math.atan(Vx / Vy); if (Vy < 0) h += Math.PI; else if (Vx < 0) h += 2 * Math.PI;
+  return h / D2R;
+}
+let compRaw = [], compBad = false;
 function onOri(e) {
   let h = null;
-  if (typeof e.webkitCompassHeading === 'number') h = e.webkitCompassHeading;                     // iOS
-  else if ((e.absolute || ORI_EV === 'deviceorientationabsolute') && typeof e.alpha === 'number') h = 360 - e.alpha; // Android
-  if (h === null) return;
+  if (typeof e.webkitCompassHeading === 'number') { h = e.webkitCompassHeading;                  // iOS (مصحَّح للإمالة)
+    compBad = typeof e.webkitCompassAccuracy === 'number' && (e.webkitCompassAccuracy < 0 || e.webkitCompassAccuracy > 25); }
+  else if ((e.absolute || ORI_EV === 'deviceorientationabsolute') && e.alpha != null && e.beta != null) h = tiltHeading(e.alpha, e.beta, e.gamma);
+  if (h === null || isNaN(h)) return;
   h += (screen.orientation && screen.orientation.angle) || window.orientation || 0;
   h = (h + set.decl + 720) % 360;                                       // مغناطيسي ← حقيقي
-  if (heading === null) heading = h; else { const d = ((h - heading + 540) % 360) - 180; heading = (heading + d * 0.25 + 360) % 360; }
-  $('sHead').textContent = f(heading, 0) + '°';
+  // كشف البوصلة المضطربة (قرب حديد/سيارة أو تحتاج معايرة)
+  const now = Date.now(); compRaw.push([now, h]); compRaw = compRaw.filter(q => now - q[0] < 1500);
+  if (compRaw.length > 8 && typeof e.webkitCompassAccuracy !== 'number') {
+    let sx = 0, sy = 0; for (const [, v] of compRaw) { sx += Math.cos(v * D2R); sy += Math.sin(v * D2R); }
+    const R = Math.hypot(sx, sy) / compRaw.length; compBad = R < 0.9;     // تشتت أكثر من ~٢٥°
+  }
+  if (heading === null) heading = h; else { const d = ((h - heading + 540) % 360) - 180; heading = (heading + d * 0.15 + 360) % 360; }
+  $('sHead').textContent = f(heading, 0) + '°' + (compBad ? ' ⚠' : '');
   if (!$('pNav').hidden) updNav(true);
 }
 async function startCompass() {
@@ -1002,7 +1021,7 @@ async function startNav() {
   try { if (!wake) wake = await navigator.wakeLock?.request('screen'); wake?.addEventListener?.('release', () => wake = null); } catch (e) {}
   reached = false; renderPts(); updNav();
 }
-function pick(i) { if (!pts.length) return; curIdx = (i + pts.length) % pts.length; reached = false; saidTh = Infinity; fitted = false;
+function pick(i) { if (!pts.length) return; curIdx = (i + pts.length) % pts.length; reached = false; inN = outN = 0; lastDir = null; saidTh = Infinity; fitted = false;
   save(); renderPts(); if (typeof drawMapPts === 'function') drawMapPts(); updNav(); }
 $('selPt').onchange = () => { pick(+$('selPt').value); startNav(); };
 $('bPrev').onclick = () => pick(curIdx - 1);
@@ -1046,8 +1065,12 @@ $('bStake').onclick = () => {
 function setView(v, lazy) { view = v; store.set('pf_view', v);
   $('vArrow').classList.toggle('on', v === 'arrow'); $('vMap').classList.toggle('on', v === 'map');
   $('dialBox').hidden = v !== 'arrow'; $('mapBox').hidden = v !== 'map';
-  $('viewHint').textContent = v === 'map' ? 'اسحب الخريطة بإصبعك · «تتبعني» يرجعها لموقعك' : 'امسك الجوال أفقياً — أعلى الجوال = اتجاه سيرك';
+  $('viewHint').textContent = v === 'map' ? 'اسحب الخريطة بإصبعك · زر ⌖ يرجعك لموقعك' : '';
   if (v === 'map' && !lazy) initMap(); updNav(); }
+function orientUI() { $('bOrient').textContent = set.orient === 'north' ? '⬆ الشمال للأعلى (بدون بوصلة)' : '🧭 حسب اتجاهك (بوصلة/حركة)'; }
+$('bOrient').onclick = () => { set.orient = set.orient === 'north' ? 'auto' : 'north'; store.set('pf_set', set); orientUI(); lastDir = null; updNav();
+  toast(set.orient === 'north' ? 'الشمال دائماً لأعلى الشاشة — اتبع التعليمات بالشمال/الشرق' : 'السهم يتبع اتجاهك'); };
+orientUI();
 $('vArrow').onclick = () => setView('arrow'); $('vMap').onclick = () => setView('map');
 // علامات البوصلة حول الدائرة
 $('ticksG').innerHTML = Array.from({ length: 36 }, (_, i) => { const a = i * 10 * D2R, big = i % 9 === 0, r1 = big ? 122 : 128;
@@ -1212,7 +1235,7 @@ setInterval(() => {
   if (!sound || navDist === null || $('pNav').hidden || document.hidden) return;
   const d = navDist, now = Date.now(), tol = set.tol === 'auto' ? 1 : Math.max(1, +set.tol);
   let gap = 0, play = null;
-  if (d <= tol) { gap = 110; play = () => beepLoud((now / 110 | 0) % 2 ? 3400 : 2900, 0.085);       // إنذار متواصل
+  if (reached) { gap = 110; play = () => beepLoud((now / 110 | 0) % 2 ? 3400 : 2900, 0.085);       // إنذار متواصل
     if (now - lastVib > 700) { lastVib = now; navigator.vibrate?.([300, 100, 300]); } }
   else if (d <= 5) { gap = 120 + (d - 1) * 80; play = () => beepLoud(2200 + (5 - d) * 180, 0.08); }  // ١٩٠–٤٤٠ مللي ث
   else if (d <= 20) { gap = 500 + (d - 5) * 60; play = () => beepSoft(900 + (20 - d) * 25); }
@@ -1225,8 +1248,7 @@ function updNav(fromCompass) {
   navDist = null;
   if (!p) { $('target').textContent = ''; $('dist').textContent = '—'; $('dirTxt').textContent = 'أضف نقاطاً أولاً من شاشة «النقاط»'; $('offs').hidden = true; cue('', 'أضف نقاطاً أولاً'); return; }
   $('target').textContent = `${sysName(p.sys, p.dat)} · ${fmtA(p)} , ${fmtB(p)}` + (p.done ? ' · ✔ موقَّعة' : '');
-  const hasH = heading !== null || !!(me && me.speed > 0.7 && me.heading != null);
-  const h = heading !== null ? heading : hasH ? me.heading : 0;
+  const hs = navHeading(), hasH = hs.src !== 'none', h = hs.h;
   $('northG').setAttribute('transform', `rotate(${f(-h, 1)} 150 150)`); $('ticksG').setAttribute('transform', `rotate(${f(-h, 1)} 150 150)`);
   if (!me) { $('dist').innerHTML = '…'; $('dirTxt').textContent = 'جارٍ تحديد موقعك…'; $('offs').hidden = true; cue('', '⌛ جارٍ تحديد موقعك'); return; }
   const [la, lo] = toLL(p), r = distBear(me.lat, me.lon, la, lo);
@@ -1245,7 +1267,14 @@ function updNav(fromCompass) {
   } else $('oRel').hidden = true;
   const rel = (r.b - h + 360) % 360;
   const tol = set.tol === 'auto' ? 1 : +set.tol;
-  const ok = r.d <= tol, near = r.d <= 5, zone = ok ? 'z-ok' : near ? 'z-near' : r.d <= 20 ? 'z-mid' : '';
+  // الوصول بثبات: قراءتان متتاليتان داخل المسافة، ولا يُلغى إلا بعد الخروج الواضح ٣ مرات (يمنع «وصلت» ثم «اذهب لمكان آخر»)
+  if (!fromCompass) {
+    if (!reached) { inN = r.d <= tol ? inN + 1 : 0; if (inN >= 2) { reached = true; outN = 0; navigator.vibrate?.([400, 100, 400]); } }
+    else { outN = r.d > tol + Math.max(0.5, tol * 0.5) ? outN + 1 : 0; if (outN >= 3) { reached = false; inN = 0; } }
+  }
+  const ok = reached, near = r.d <= 5, zone = ok ? 'z-ok' : near ? 'z-near' : r.d <= 20 ? 'z-mid' : '';
+  // هامش الخطأ الحقيقي: الدقة المبلّغة من الجوال، إلا بعد التثبيت أو المعايرة
+  const unc = hold || cal ? (me.acc || 1) : (me.raw || me.acc || 5), fuzzy = !ok && unc > tol && r.d < Math.max(1.5, unc * 1.5);
   // السهم أو شاشة الهدف
   $('farView').style.display = near ? 'none' : ''; $('nearView').style.display = near ? '' : 'none';
   $('arrowG').setAttribute('transform', `rotate(${f(rel, 1)} 150 150)`);
@@ -1263,19 +1292,34 @@ function updNav(fromCompass) {
     $('tgtG').setAttribute('transform', `translate(${f(150 + rr * Math.sin(a), 1)} ${f(150 - rr * Math.cos(a), 1)})`); }
   // التعليمة الكبيرة
   const m = r.d < 10 ? f(r.d, 1) + ' م' : fmtD(r.d);
-  if (ok) cue(zone, '✔ وصلت — ثبّت العلامة' + (r.d <= 1.25 ? ` · ${f(r.d * 100, 0)} سم` : ''));
-  else if (!hasH) cue(zone, `اتجه نحو ${dirAr(r.b)} · ${m}`);
-  else if (rel < 25 || rel > 335) cue(zone, `⬆ تقدّم للأمام · ${m}`);
-  else if (rel <= 155) cue(zone, `↪ لف يميناً · ${m}`);
-  else if (rel >= 205) cue(zone, `↩ لف يساراً · ${m}`);
-  else cue(zone, `⬇ ارجع للخلف · ${m}`);
+  if (ok) cue(zone, '✔ وصلت — ثبّت العلامة' + (r.d <= 1.25 ? ` · ${f(r.d * 100, 0)} سم` : '') + (unc > tol * 1.5 ? ` (دقة ±${f(unc, 1)} م)` : ''));
+  else if (fuzzy) cue('z-mid', `📍 قريب جداً — الـGPS يتذبذب ±${f(unc, 1)} م. اضغط «تثبيت دقيق» وقف ثابتاً`);
+  else if (hs.src === 'north' || !hasH) cue(zone, offTxt(r) + (hasH ? '' : ' · (البوصلة غير متاحة)'));
+  else {
+    // اتجاه بثبات: لا يتغيّر إلا إذا تجاوز حدود المنطقة بـ ١٥°
+    const band = d => d === 'f' ? (rel < 30 || rel > 330) : d === 'r' ? (rel >= 30 && rel <= 150) : d === 'b' ? (rel > 150 && rel < 210) : (rel >= 210 && rel <= 330);
+    const inBand = (d, x) => { const q = (rel + x + 360) % 360; return d === 'f' ? (q < 30 || q > 330) : d === 'r' ? (q >= 30 && q <= 150) : d === 'b' ? (q > 150 && q < 210) : (q >= 210 && q <= 330); };
+    const keep = lastDir && (band(lastDir) || inBand(lastDir, 15) || inBand(lastDir, -15));
+    if (!keep) lastDir = ['f', 'r', 'b', 'l'].find(band);
+    const T = { f: '⬆ تقدّم للأمام', r: '↪ لف يميناً', l: '↩ لف يساراً', b: '⬇ ارجع للخلف' };
+    cue(zone, `${T[lastDir]} · ${m}` + (hs.src === 'gps' ? ' 🚶' : compBad ? ' · ⚠ حرّك الجوال على شكل ٨' : ''));
+  }
   $('reach').hidden = !ok;
-  if (ok && !reached) { reached = true; navigator.vibrate?.([400, 100, 400]); }
-  if (!ok) reached = false;
+  $('headSrc').textContent = hs.src === 'gps' ? 'الاتجاه من حركتك (GPS)' : hs.src === 'compass' ? (compBad ? '⚠ البوصلة مضطربة — حرّك الجوال على شكل ٨ وابتعد عن الحديد والسيارات' : 'الاتجاه من البوصلة — أعلى الجوال = اتجاه سيرك') : hs.src === 'north' ? 'الشمال للأعلى — اتبع أرقام شمال/شرق' : 'البوصلة غير متاحة — امشِ قليلاً ليُعرف اتجاهك';
   if (!fromCompass) announce(r.d, ok);
   navDist = r.d;
   updMap();
 }
+let inN = 0, outN = 0, lastDir = null;
+// مصدر الاتجاه: أثناء المشي اتجاه الحركة من الـGPS (أدق من البوصلة)، وإلا البوصلة، أو الشمال للأعلى
+function navHeading() {
+  if (set.orient === 'north') return { h: 0, src: 'north' };
+  if (me && me.speed >= 1 && me.heading != null && !isNaN(me.heading)) return { h: me.heading, src: 'gps' };
+  if (heading !== null) return { h: heading, src: 'compass' };
+  return { h: 0, src: 'none' };
+}
+function offTxt(r) { const ns = r.dN >= 0 ? 'شمالاً' : 'جنوباً', ew = r.dE >= 0 ? 'شرقاً' : 'غرباً', a = Math.abs(r.dN), b = Math.abs(r.dE);
+  return a >= b ? `⬆ ${f(a, 1)} م ${ns} ثم ${f(b, 1)} م ${ew}` : `➡ ${f(b, 1)} م ${ew} ثم ${f(a, 1)} م ${ns}`; }
 function cue(cls, txt) { const c = $('cue'); if (c.textContent !== txt) c.textContent = txt; c.className = 'cue ' + cls; }
 
 /* ================= التحويل ================= */
