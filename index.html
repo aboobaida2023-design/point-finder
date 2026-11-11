@@ -152,6 +152,18 @@ label{font-size:13px;color:var(--mut);display:block;margin-bottom:4px}
 .mapBtns{position:absolute;bottom:30px;left:10px;right:10px;display:flex;gap:6px;justify-content:center;z-index:500;flex-wrap:wrap}
 .mapBtns .btn{background:#ffffffee;color:#0f2340;border-color:#0002;box-shadow:0 2px 8px #0004}
 .mapBtns .btn.on{background:var(--gold);color:var(--gold-ink)}
+.alignBox{position:absolute;top:10px;left:10px;right:10px;z-index:700;background:#ffffffef;color:#0f2340;border-radius:14px;padding:10px 12px;box-shadow:0 4px 16px #0005;font-size:13px}
+.alignBox p{margin:4px 0 8px;color:#45556c;font-size:12px}
+.alignHead{display:flex;justify-content:space-between;gap:8px}
+.alignPad{display:grid;grid-template-columns:repeat(3,54px);gap:4px;justify-content:center;direction:ltr}
+.alignPad .btn{background:#fff;color:#0f2340;min-height:34px;padding:2px;font-size:15px}
+#alStep{font-size:11px}
+.leaflet-control-scale-line{background:#ffffffcc;font-weight:600}
+.locBtn{width:46px;height:46px;border-radius:12px;border:2px solid #0003;background:#fff;color:#1d4ed8;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 8px #0005;margin-top:10px!important}
+.locBtn svg{width:28px;height:28px}
+.locBtn.on{background:#1d4ed8;color:#fff}
+.locBtn.wait svg{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .mapMsg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;background:var(--soft);color:var(--mut);z-index:600}
 .me-ic{width:44px;height:44px}
 .pt-ic{display:grid;place-items:center;border-radius:50%;font-weight:700;font-size:12px;color:#0f2340;background:#fff;border:3px solid #0f2340;box-shadow:0 1px 4px #0008}
@@ -165,6 +177,9 @@ label{font-size:13px;color:var(--mut);display:block;margin-bottom:4px}
 .stats span{font-size:11.5px;color:var(--mut)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
 .grid2 .wide{grid-column:1/-1}
+.holdbox{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:10px;font-size:14px}
+.calbar{display:flex;align-items:center;gap:8px;background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok);border-radius:12px;padding:6px 10px;margin-top:10px;font-size:13px}
+.calbar span{flex:1}.calbar.old{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
 
 /* الأدوات */
 .out{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;font-size:14px}
@@ -256,6 +271,7 @@ nav button.on svg{color:var(--gold)}
     <h2>راجع النقاط المقروءة <span class="sp"></span><span class="hint" style="margin:0" id="revCount"></span></h2>
     <div class="row" style="align-items:flex-end">
       <div><label for="revSys">نظام هذه الإحداثيات</label><select id="revSys"></select></div>
+      <div><label for="revDat">المرجع</label><select id="revDat"><option value="wgs">WGS84 / KSA-GRF17 (الحديث)</option><option value="aea">عين العبد 1970 (الصكوك القديمة)</option></select></div>
     </div>
     <div class="tw" style="margin-top:8px"><table class="rev"><thead><tr><th></th><th>نقطة</th><th>شرق E / طول</th><th>شمال N / عرض</th></tr></thead><tbody id="tReview"></tbody></table></div>
     <p class="hint" id="revNote">قراءة الصور قد تخطئ في رقم — صحّح أي خانة قبل الاعتماد. الأسطر الملوّنة بعيدة عن بقية النقاط وتستحق التدقيق.</p>
@@ -302,10 +318,11 @@ nav button.on svg{color:var(--gold)}
         <g id="nearView" style="display:none">
           <circle cx="150" cy="150" r="125" fill="none" stroke="var(--warn)" stroke-width="2" stroke-dasharray="4 5"/>
           <circle cx="150" cy="150" r="75" fill="none" stroke="var(--warn)" stroke-width="1.5" stroke-dasharray="3 5"/>
-          <circle cx="150" cy="150" r="25" fill="var(--ok)" fill-opacity=".18" stroke="var(--ok)" stroke-width="3"/>
-          <text x="244" y="246" font-size="12" font-weight="600" fill="var(--warn)">٥ م</text>
-          <text x="209" y="211" font-size="12" font-weight="600" fill="var(--warn)">٣ م</text>
-          <text x="170" y="176" font-size="12" font-weight="700" fill="var(--ok)">١ م</text>
+          <circle cx="150" cy="150" r="25" id="nTol" fill="var(--ok)" fill-opacity=".18" stroke="var(--ok)" stroke-width="3"/>
+          <text x="244" y="246" font-size="12" font-weight="600" fill="var(--warn)" id="nl1">٥ م</text>
+          <text x="209" y="211" font-size="12" font-weight="600" fill="var(--warn)" id="nl2">٣ م</text>
+          <text x="170" y="176" font-size="12" font-weight="700" fill="var(--ok)" id="nl3">١ م</text>
+          <text x="150" y="292" text-anchor="middle" font-size="11" font-weight="700" fill="var(--mut)" id="nMode"></text>
           <path d="M150 132 V168 M132 150 H168" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
           <g id="tgtG"><circle r="20" fill="var(--gold)" fill-opacity=".35"><animate attributeName="r" values="12;24;12" dur="1.2s" repeatCount="indefinite"/></circle>
             <circle r="11" fill="var(--gold)" stroke="var(--navy)" stroke-width="3"/></g>
@@ -320,7 +337,18 @@ nav button.on svg{color:var(--gold)}
       <div class="mapBtns">
         <button class="btn sm" id="mFollow" type="button">📍 تتبعني</button>
         <button class="btn sm" id="mFit" type="button">⤢ أنا والنقطة</button>
-        <button class="btn sm" id="mLayer" type="button">🗺️ شوارع</button>
+        <button class="btn sm" id="mLayer" type="button">🛰️ عالية الوضوح</button>
+        <button class="btn sm" id="mAlign" type="button">⇄ مطابقة الصورة</button>
+      </div>
+      <div class="alignBox" id="alignBox" hidden>
+        <div class="alignHead"><b>مطابقة الصورة الجوية</b><span class="num" id="alignVal"></span></div>
+        <p>الصورة قد تُزاح عن الواقع ١–٥ م. حرّكها حتى تنطبق معالمها على نقطة معلومة أو على موقعك بعد المعايرة.</p>
+        <div class="alignPad">
+          <span></span><button class="btn sm" data-mv="0,1" type="button">⬆</button><span></span>
+          <button class="btn sm" data-mv="-1,0" type="button">⬅</button><button class="btn sm" id="alStep" type="button">٢٥ سم</button><button class="btn sm" data-mv="1,0" type="button">➡</button>
+          <span></span><button class="btn sm" data-mv="0,-1" type="button">⬇</button><span></span>
+        </div>
+        <div class="row" style="margin-top:6px"><button class="btn sm" id="alZero" type="button">تصفير</button><button class="btn sm pri" id="alDone" type="button">تم</button></div>
       </div>
       <div class="mapMsg" id="mapMsg" hidden></div>
     </div>
@@ -333,17 +361,20 @@ nav button.on svg{color:var(--gold)}
     </div>
 
     <div class="stats">
-      <div><b class="num" id="sAcc">—</b><span>دقة الـGPS (م)</span></div>
-      <div><b class="num" id="sAvg">—</b><span>قراءات مُثبّتة</span></div>
+      <div><b class="num" id="sAcc">—</b><span>الدقة (م)</span></div>
+      <div><b class="num" id="sAvg">—</b><span>قراءات التثبيت</span></div>
       <div><b class="num" id="sHead">—</b><span>البوصلة</span></div>
     </div>
 
+    <div class="holdbox" id="holdInfo" hidden></div>
+    <div class="calbar" id="calInfo" hidden></div>
     <div class="grid2">
-      <button id="bHold" class="btn" type="button">⏸ تثبيت ومتوسط</button>
-      <button id="bSound" class="btn" type="button">🔈 الصوت</button>
+      <button id="bHold" class="btn" type="button">⏸ تثبيت دقيق</button>
+      <button id="bCal" class="btn" type="button">🎯 معايرة على نقطة معلومة</button>
+      <button id="bSound" class="btn wide" type="button">🔈 الصوت</button>
       <button id="bStake" class="btn ok wide" type="button"><svg><use href="#i-check"/></svg>تم التوقيع — انتقل للتالية</button>
     </div>
-    <p class="hint">عند الاقتراب (أقل من ١٠ م) اعتمد على أرقام «شمال/شرق» أكثر من السهم، وفعّل «تثبيت» وقف ثابتاً بضع ثوانٍ لتحسين الدقة.</p>
+    <p class="hint"><b>لأعلى دقة:</b> ١) قف على نقطة معلومة الإحداثيات (هيكل أو نقطة تحكم قريبة)، اخترها واضغط «معايرة» — يُصحَّح خطأ الـGPS لكل النقاط حولك لمدة ٣٠ دقيقة تقريباً. ٢) عند كل نقطة فعّل «تثبيت دقيق» وقف ثابتاً دقيقة قبل التسجيل.</p>
   </div>
 </section>
 
@@ -353,6 +384,7 @@ nav button.on svg{color:var(--gold)}
     <h2>تحويل إحداثيات</h2>
     <div class="row">
       <div><label for="cSys">من نظام</label><select id="cSys"></select></div>
+      <div><label for="cDat">المرجع</label><select id="cDat"><option value="wgs">WGS84 / KSA-GRF17 (الحديث)</option><option value="aea">عين العبد 1970 (الصكوك القديمة)</option></select></div>
     </div>
     <div class="row field">
       <div><label for="cA" id="lA">شرق E</label><input id="cA" class="num" inputmode="decimal" autocomplete="off"></div>
@@ -409,12 +441,24 @@ nav button.on svg{color:var(--gold)}
   </div>
 
   <div class="card">
+    <h2>📡 الدقة: ما الذي يمكن الوصول إليه؟</h2>
+    <div class="kv" style="grid-template-columns:1fr 1fr 1fr">
+      <div><b>٢–٥ م</b><span>الجوال وحده</span></div>
+      <div><b>٣٠ سم–١ م</b><span>مع المعايرة والتثبيت</span></div>
+      <div><b>١–٣ سم</b><span>مع جهاز RTK خارجي</span></div>
+    </div>
+    <p class="hint"><b>المعايرة:</b> قف على نقطة معلومة الإحداثيات بدقة (نقطة تحكم أو هيكل موقَّع سابقاً)، واخترها في التوجيه ثم «معايرة». خطأ الـGPS يكون متقارباً للنقاط القريبة خلال نصف ساعة، فيُطرح من كل القراءات التالية.</p>
+    <p class="hint"><b>جهاز RTK (للسنتيمترات):</b> أجهزة مثل Emlid Reach أو ArduSimple تتصل بالجوال بالبلوتوث. في أندرويد فعّل «الموقع الوهمي» (Mock location) لتطبيق الجهاز من خيارات المطوّر، فيستقبل هذا التطبيق دقّته مباشرة دون أي إعداد إضافي.</p>
+    <p class="hint">نصائح: السماء مفتوحة بعيداً عن المباني والأسلاك، الجوال أفقياً فوق النقطة تماماً، وفي أندرويد فعّل «دقة الموقع من Google». الجوالات ثنائية التردد (L1+L5) أدق بوضوح.</p>
+  </div>
+
+  <div class="card">
     <h2>الإعدادات</h2>
     <div class="row">
       <div><label for="stZone">النظام الافتراضي للأرقام</label>
         <select id="stZone"><option value="auto">تلقائي من موقعي</option><option value="37">UTM 37N</option><option value="38">UTM 38N</option><option value="39">UTM 39N</option><option value="40">UTM 40N</option></select></div>
       <div><label for="stTol">اعتبار الوصول عند</label>
-        <select id="stTol"><option value="0.3">٠٫٣ م</option><option value="0.5">٠٫٥ م</option><option value="auto">١ م (افتراضي)</option><option value="2">٢ م</option><option value="3">٣ م</option><option value="5">٥ م</option></select></div>
+        <select id="stTol"><option value="0.1">١٠ سم</option><option value="0.2">٢٠ سم</option><option value="0.3">٣٠ سم</option><option value="0.5">٥٠ سم</option><option value="auto">١ م (افتراضي)</option><option value="2">٢ م</option><option value="3">٣ م</option><option value="5">٥ م</option></select></div>
     </div>
     <div class="row field">
       <div><label for="stDecl">الانحراف المغناطيسي (°)</label><input id="stDecl" class="num" inputmode="decimal"></div>
@@ -422,12 +466,18 @@ nav button.on svg{color:var(--gold)}
         <select id="stSun"><option value="0">عادي</option><option value="1">تباين عالٍ</option></select></div>
     </div>
     <div class="row field">
+      <div><label for="stDat">المرجع الافتراضي للإحداثيات</label><select id="stDat"><option value="wgs">WGS84 / KSA-GRF17 (الحديث)</option><option value="aea">عين العبد 1970 (الصكوك القديمة)</option></select></div>
+    </div>
+    <div class="row field">
+      <div><label for="stMax">تجاهل قراءات الـGPS الأسوأ من</label>
+        <select id="stMax"><option value="5">٥ م</option><option value="10">١٠ م</option><option value="15">١٥ م (افتراضي)</option><option value="30">٣٠ م</option><option value="9999">لا تتجاهل</option></select></div>
       <div><label for="stVoice">الإعلان الصوتي بالعربي</label>
         <select id="stVoice"><option value="1">يعمل («باقي خمسة أمتار»)</option><option value="0">متوقف (صفارة فقط)</option></select></div>
     </div>
     <p class="hint">الصوت: صفارة هادئة من ٢٠ م، ثم صفارة عالية جداً تتسارع من ٥ م، ثم إنذار متواصل مع اهتزاز عند مسافة الوصول. ارفع صوت الجوال للآخر.</p>
+    <p class="hint"><b>المرجع:</b> أغلب المخططات الحديثة على WGS84/KSA-GRF17. الصكوك والمخططات القديمة قد تكون على «عين العبد 1970» والفرق بينهما قد يصل لأكثر من ٢٠٠ م. تحويل عين العبد الرسمي (EPSG:1055) دقته نحو ±١٨ م، لذلك استخدم «المعايرة على نقطة معلومة» لإزالة الفرق المتبقي.</p>
     <p class="hint">الانحراف الافتراضي ٣° (الرياض والشرقية تقريباً). جدة والغربية حوالي ٣٫٥°. يصحّح البوصلة إلى الشمال الحقيقي.</p>
-    <p class="hint" id="ver">الإصدار 2.4</p>
+    <p class="hint" id="ver">الإصدار 2.6</p>
   </div>
 </section>
 </main>
@@ -456,46 +506,87 @@ const store = {
 };
 
 /* ================= الإعدادات ================= */
-const set = Object.assign({ zone: 'auto', tol: 'auto', decl: 3, sun: '0', voice: '1' }, store.get('pf_set', {}));
+const set = Object.assign({ zone: 'auto', tol: 'auto', decl: 3, sun: '0', voice: '1', dat: 'wgs', maxAcc: '15' }, store.get('pf_set', {}));
 function applySet() {
-  $('stZone').value = set.zone; $('stTol').value = set.tol; $('stDecl').value = set.decl; $('stSun').value = set.sun; $('stVoice').value = set.voice;
+  $('stZone').value = set.zone; $('stTol').value = set.tol; $('stDecl').value = set.decl; $('stSun').value = set.sun; $('stVoice').value = set.voice; $('stDat').value = set.dat; $('stMax').value = set.maxAcc;
   document.body.classList.toggle('sun', set.sun === '1');
 }
-['stZone', 'stTol', 'stDecl', 'stSun', 'stVoice'].forEach(id => $(id).addEventListener('change', () => {
-  set.zone = $('stZone').value; set.tol = $('stTol').value; set.sun = $('stSun').value; set.voice = $('stVoice').value;
+['stZone', 'stTol', 'stDecl', 'stSun', 'stVoice', 'stDat', 'stMax'].forEach(id => $(id).addEventListener('change', () => {
+  set.zone = $('stZone').value; set.tol = $('stTol').value; set.sun = $('stSun').value; set.voice = $('stVoice').value; set.dat = $('stDat').value; set.maxAcc = $('stMax').value;
   const d = parseFloat(normDigits($('stDecl').value)); set.decl = isFinite(d) ? d : 3;
   store.set('pf_set', set); applySet(); toast('حُفظ الإعداد');
 }));
 
-/* ================= الإسقاط: WGS84 ⇄ UTM ================= */
-const A = 6378137, F = 1 / 298.257223563, K0 = 0.9996, E2 = F * (2 - F), EP2 = E2 / (1 - E2), D2R = Math.PI / 180;
-function ll2utm(lat, lon, zone) {
-  const p = lat * D2R, l = (lon - (zone * 6 - 183)) * D2R;
-  const s = Math.sin(p), c = Math.cos(p), t = Math.tan(p);
-  const N = A / Math.sqrt(1 - E2 * s * s), T = t * t, C = EP2 * c * c, a = c * l;
-  const e4 = E2 * E2, e6 = e4 * E2;
-  const M = A * ((1 - E2/4 - 3*e4/64 - 5*e6/256) * p - (3*E2/8 + 3*e4/32 + 45*e6/1024) * Math.sin(2*p)
-          + (15*e4/256 + 45*e6/1024) * Math.sin(4*p) - (35*e6/3072) * Math.sin(6*p));
-  return [K0 * N * (a + (1-T+C)*a**3/6 + (5-18*T+T*T+72*C-58*EP2)*a**5/120) + 500000,
-          K0 * (M + N*t*(a*a/2 + (5-T+9*C+4*C*C)*a**4/24 + (61-58*T+T*T+600*C-330*EP2)*a**6/720))];
+/* ================= الإسقاط: سلسلة Krüger (دقة أقل من ملّيمتر في كامل النطاق) ================= */
+const D2R = Math.PI / 180, K0 = 0.9996;
+function mkEll(a, invf) {
+  const F = 1 / invf, n = F / (2 - F), n2 = n * n, n3 = n2 * n, n4 = n3 * n, n5 = n4 * n, n6 = n5 * n;
+  return { a, F, E2: F * (2 - F), e: Math.sqrt(F * (2 - F)),
+    A: a / (1 + n) * (1 + n2 / 4 + n4 / 64 + n6 / 256),
+    al: [0, n/2 - 2*n2/3 + 5*n3/16 + 41*n4/180 - 127*n5/288 + 7891*n6/37800,
+         13*n2/48 - 3*n3/5 + 557*n4/1440 + 281*n5/630 - 1983433*n6/1935360,
+         61*n3/240 - 103*n4/140 + 15061*n5/26880 + 167603*n6/181440,
+         49561*n4/161280 - 179*n5/168 + 6601661*n6/7257600,
+         34729*n5/80640 - 3418889*n6/1995840, 212378941*n6/319334400],
+    be: [0, n/2 - 2*n2/3 + 37*n3/96 - n4/360 - 81*n5/512 + 96199*n6/604800,
+         n2/48 + n3/15 - 437*n4/1440 + 46*n5/105 - 1118711*n6/3870720,
+         17*n3/480 - 37*n4/840 - 209*n5/4480 + 5569*n6/90720,
+         4397*n4/161280 - 11*n5/504 - 830251*n6/7257600,
+         4583*n5/161280 - 108847*n6/3991680, 20648693*n6/638668800] };
 }
-function utm2ll(E, N, zone) {
-  const e1 = (1 - Math.sqrt(1 - E2)) / (1 + Math.sqrt(1 - E2)), e4 = E2 * E2, e6 = e4 * E2;
-  const x = E - 500000, mu = (N / K0) / (A * (1 - E2/4 - 3*e4/64 - 5*e6/256));
-  const p1 = mu + (3*e1/2 - 27*e1**3/32)*Math.sin(2*mu) + (21*e1*e1/16 - 55*e1**4/32)*Math.sin(4*mu)
-           + (151*e1**3/96)*Math.sin(6*mu) + (1097*e1**4/512)*Math.sin(8*mu);
-  const s = Math.sin(p1), c = Math.cos(p1), t = Math.tan(p1);
-  const N1 = A / Math.sqrt(1 - E2*s*s), T1 = t*t, C1 = EP2*c*c, R1 = A*(1-E2)/Math.pow(1-E2*s*s, 1.5), D = x / (N1*K0);
-  const lat = p1 - (N1*t/R1)*(D*D/2 - (5+3*T1+10*C1-4*C1*C1-9*EP2)*D**4/24 + (61+90*T1+298*C1+45*T1*T1-252*EP2-3*C1*C1)*D**6/720);
-  const lon = (D - (1+2*T1+C1)*D**3/6 + (5-2*C1+28*T1-3*C1*C1+8*EP2+24*T1*T1)*D**5/120) / c;
-  return [lat / D2R, zone * 6 - 183 + lon / D2R];
+const WGS = mkEll(6378137, 298.257223563), INTL = mkEll(6378388, 297);   // WGS84 · الدولي 1924 (عين العبد)
+const A = WGS.a, E2 = WGS.E2;
+function tmFwd(lat, lon, zone, el = WGS) {
+  const p = lat * D2R, l = (lon - (zone * 6 - 183)) * D2R, sp = Math.sin(p);
+  const t = Math.sinh(Math.atanh(sp) - el.e * Math.atanh(el.e * sp));
+  const xi1 = Math.atan2(t, Math.cos(l)), eta1 = Math.atanh(Math.sin(l) / Math.sqrt(1 + t * t));
+  let xi = xi1, eta = eta1;
+  for (let j = 1; j <= 6; j++) { xi += el.al[j] * Math.sin(2*j*xi1) * Math.cosh(2*j*eta1); eta += el.al[j] * Math.cos(2*j*xi1) * Math.sinh(2*j*eta1); }
+  return [500000 + K0 * el.A * eta, K0 * el.A * xi];
 }
+function tmInv(E, N, zone, el = WGS) {
+  const xi = N / (K0 * el.A), eta = (E - 500000) / (K0 * el.A);
+  let xi1 = xi, eta1 = eta;
+  for (let j = 1; j <= 6; j++) { xi1 -= el.be[j] * Math.sin(2*j*xi) * Math.cosh(2*j*eta); eta1 -= el.be[j] * Math.cos(2*j*xi) * Math.sinh(2*j*eta); }
+  const sh = Math.sinh(eta1), cx = Math.cos(xi1);
+  const tp = Math.sin(xi1) / Math.sqrt(sh * sh + cx * cx);
+  let tau = tp;
+  for (let i = 0; i < 6; i++) {                                   // نيوتن: من خط العرض المطابق إلى الجغرافي
+    const sg = Math.sinh(el.e * Math.atanh(el.e * tau / Math.sqrt(1 + tau * tau)));
+    const ti = tau * Math.sqrt(1 + sg * sg) - sg * Math.sqrt(1 + tau * tau);
+    const dt = (tp - ti) / Math.sqrt(1 + ti * ti) * (1 + (1 - el.E2) * tau * tau) / ((1 - el.E2) * Math.sqrt(1 + tau * tau));
+    tau += dt; if (Math.abs(dt) < 1e-14) break;
+  }
+  return [Math.atan(tau) / D2R, zone * 6 - 183 + Math.atan2(sh, cx) / D2R];
+}
+const ll2utm = (lat, lon, zone) => tmFwd(lat, lon, zone);
+const utm2ll = (E, N, zone) => tmInv(E, N, zone);
+
+/* ---------- تحويل المرجع: عين العبد 1970 ⇄ WGS84 (EPSG:1055 — السعودية) ---------- */
+const AEA_T = [-143, -236, 7];
+function geo2ecef(lat, lon, el) { const p = lat * D2R, l = lon * D2R, s = Math.sin(p), N = el.a / Math.sqrt(1 - el.E2 * s * s);
+  return [N * Math.cos(p) * Math.cos(l), N * Math.cos(p) * Math.sin(l), N * (1 - el.E2) * s]; }
+function ecef2geo(x, y, z, el) { const p = Math.hypot(x, y); let lat = Math.atan2(z, p * (1 - el.E2));
+  for (let i = 0; i < 6; i++) { const s = Math.sin(lat), N = el.a / Math.sqrt(1 - el.E2 * s * s); lat = Math.atan2(z + el.E2 * N * s, p); }
+  return [lat / D2R, Math.atan2(y, x) / D2R]; }
+function aea2wgs(lat, lon) { const [x, y, z] = geo2ecef(lat, lon, INTL); return ecef2geo(x + AEA_T[0], y + AEA_T[1], z + AEA_T[2], WGS); }
+function wgs2aea(lat, lon) { const [x, y, z] = geo2ecef(lat, lon, WGS); return ecef2geo(x - AEA_T[0], y - AEA_T[1], z - AEA_T[2], INTL); }
 const zoneOf = lon => Math.floor((lon + 180) / 6) + 1;
 function dms(v, pos, neg) { const s = v < 0 ? neg : pos; v = Math.abs(v);
   let d = Math.floor(v), m = Math.floor((v - d) * 60), sec = ((v - d) * 60 - m) * 60;
   if (sec >= 59.9995) { sec = 0; m++; } if (m >= 60) { m = 0; d++; }
   return `${d}° ${String(m).padStart(2,'0')}′ ${f(sec,3).padStart(6,'0')}″ ${s}`; }
-const toLL = p => p.sys === 'll' ? [p.b, p.a] : utm2ll(p.a, p.b, +p.sys);
+// كل النقاط تتحول هنا إلى WGS84 (مرجع الـGPS)
+function toLL(p) {
+  if (p.dat === 'aea') { const ll = p.sys === 'll' ? [p.b, p.a] : tmInv(p.a, p.b, +p.sys, INTL); return aea2wgs(ll[0], ll[1]); }
+  return p.sys === 'll' ? [p.b, p.a] : tmInv(p.a, p.b, +p.sys);
+}
+// من WGS84 إلى نظام ومرجع نقطة (للحفظ والتصدير)
+function fromLL(lat, lon, sys, dat) {
+  if (dat === 'aea') [lat, lon] = wgs2aea(lat, lon);
+  if (sys === 'll') return [lon, lat];
+  return tmFwd(lat, lon, +sys, dat === 'aea' ? INTL : WGS);
+}
 // مسافة واتجاه على الإهليلج (تقريب محلي دقيق للمسافات القصيرة)
 function distBear(la1, lo1, la2, lo2) {
   const p = (la1 + la2) / 2 * D2R, s = Math.sin(p);
@@ -505,7 +596,7 @@ function distBear(la1, lo1, la2, lo2) {
   return { d: Math.hypot(dE, dN), b, dE, dN };
 }
 const SYS_OPTS = [['37','UTM 37N'],['38','UTM 38N'],['39','UTM 39N'],['40','UTM 40N'],['ll','طول وعرض (درجات)']];
-const sysName = s => s === 'll' ? 'درجات' : 'UTM ' + s + 'N';
+const sysName = (s, dat) => (s === 'll' ? 'درجات' : 'UTM ' + s + 'N') + (dat === 'aea' ? ' · عين العبد' : '');
 const fmtA = p => p.sys === 'll' ? f(p.a, 7) : f(p.a, 3);
 const fmtB = p => p.sys === 'll' ? f(p.b, 7) : f(p.b, 3);
 const fmtD = d => d < 1000 ? f(d, d < 10 ? 2 : 1) + ' م' : f(d / 1000, 2) + ' كم';
@@ -571,7 +662,7 @@ function renderPts() {
       <div class="no">${esc(p.no)}</div>
       <div class="info" data-go="${i}">
         <div class="xy num">${fmtA(p)}  ,  ${fmtB(p)}</div>
-        <div class="meta">${sysName(p.sys)}${d !== null ? ` · <b>${fmtD(d)}</b>` : ''}${st ? ' · ' + st : ''}</div>
+        <div class="meta">${sysName(p.sys, p.dat)}${d !== null ? ` · <b>${fmtD(d)}</b>` : ''}${st ? ' · ' + st : ''}</div>
       </div>
       <div class="acts">
         <button class="btn sm gold" data-go="${i}" aria-label="توجيه"><svg><use href="#i-go"/></svg></button>
@@ -602,8 +693,8 @@ $('bAddM').onclick = () => {
 };
 $('bHere').onclick = () => {
   if (!me) { startGPS(); return toast('جارٍ تحديد موقعك… اضغط مرة ثانية بعد ظهور الدقة'); }
-  const z = defZone(), [E, N] = ll2utm(me.lat, me.lon, +z);
-  addPoint({ no: 'م' + (pts.length + 1), sys: z, a: +f(E, 3), b: +f(N, 3) });
+  const z = defZone(), [E, N] = fromLL(me.lat, me.lon, z, set.dat);
+  addPoint({ no: 'م' + (pts.length + 1), sys: z, a: +f(E, 3), b: +f(N, 3), ...(set.dat === 'aea' ? { dat: 'aea' } : {}) });
   toast(`حُفظ موقعك بدقة ${f(me.acc, 1)} م` + (hold ? ' (متوسط)' : ''));
 };
 
@@ -614,6 +705,7 @@ function showReview(list, meta = {}) {
   if (!list.length) { $('review').hidden = true; return toast('لم أجد إحداثيات واضحة — جرّب صورة أقرب أو الصق النص'); }
   pending = list;
   const hasUtm = list.some(p => p.sys === 'utm');
+  $('revDat').value = set.dat;
   $('revSys').value = hasUtm ? (meta.zone && SYS_OPTS.some(o => o[0] === meta.zone) ? meta.zone : defZone()) : 'll';
   $('revSys').parentElement.parentElement.hidden = !hasUtm;
   // كشف الأرقام المشكوك فيها: نقطة بعيدة جداً عن وسيط المجموعة
@@ -638,12 +730,12 @@ $('bPasteShow').onclick = () => { $('pasteBox').hidden = !$('pasteBox').hidden; 
 $('bParse').onclick = () => showReview(parseText($('txt').value));
 $('bCancel').onclick = () => { $('review').hidden = true; pending = []; };
 $('bAccept').onclick = () => {
-  const z = $('revSys').value; let n = 0;
+  const z = $('revSys').value, dat = $('revDat').value; let n = 0;
   $('tReview').querySelectorAll('tr').forEach((tr, i) => {
     if (!tr.querySelector('input[type=checkbox]').checked) return;
     const g = k => tr.querySelector(`[data-k=${k}]`).value, p = pending[i];
     const a = parseFloat(normDigits(g('a'))), b = parseFloat(normDigits(g('b')));
-    if (isFinite(a) && isFinite(b)) { pts.push({ id: newId(), no: g('no').trim() || p.no, sys: p.sys === 'utm' ? z : 'll', a, b }); n++; }
+    if (isFinite(a) && isFinite(b)) { pts.push({ id: newId(), no: g('no').trim() || p.no, sys: p.sys === 'utm' ? z : 'll', a, b, ...(dat === 'aea' ? { dat } : {}) }); n++; }
   });
   if (curIdx < 0 && pts.length) curIdx = 0;
   save(); renderPts(); $('review').hidden = true; $('txt').value = ''; $('pasteBox').hidden = true; $('thumbs').hidden = true; stat('');
@@ -772,7 +864,8 @@ function prep(url) { return new Promise((res, rej) => { const im = new Image(); 
   x.putImageData(d, 0, 0); res(c); }; im.src = url; }); }
 
 /* ================= الموقع ================= */
-let me = null, watch = null, buf = [], hold = false, lastFix = 0;
+let me = null, meRaw = null, watch = null, buf = [], hold = false, lastFix = 0;
+let cal = store.get('pf_cal', null);          // معايرة على نقطة معلومة {dE,dN,t,no,lat,lon}
 function startGPS() {
   if (watch !== null) return;
   if (!navigator.geolocation) return toast('المتصفح لا يدعم تحديد الموقع');
@@ -785,20 +878,96 @@ function startGPS() {
 }
 function setPill(cls, txt) { $('gpsPill').className = cls; $('gpsPill').querySelector('span').textContent = txt; }
 $('gpsPill').onclick = startGPS;
+
+// تحويل محلي بين الأمتار (شرق/شمال) والدرجات حول نقطة
+function mPerDeg(lat) { const p = lat * D2R, s = Math.sin(p), w = 1 - E2 * s * s;
+  return [A / Math.sqrt(w) * Math.cos(p) * D2R, A * (1 - E2) / Math.pow(w, 1.5) * D2R]; }   // [م لكل درجة طول, م لكل درجة عرض]
+const shiftLL = (lat, lon, dE, dN) => { const [mx, my] = mPerDeg(lat); return [lat + dN / my, lon + dE / mx]; };
+
+/* ---------- مرشّح كالمان (سرعة ثابتة) لتنعيم الموقع أثناء المشي ---------- */
+const KF = { o: null, t: 0, x: [0, 0, 0, 0], P: null };
+function kfStep(lat, lon, acc, t) {
+  if (!KF.o) { KF.o = [lat, lon]; KF.t = t; KF.x = [0, 0, 0, 0]; KF.P = [[acc * acc, 0], [0, 4]].map(r => r.slice()); KF.Q = [KF.P.map(r => r.slice()), KF.P.map(r => r.slice())]; return [lat, lon]; }
+  const [mx, my] = mPerDeg(KF.o[0]), zx = (lon - KF.o[1]) * mx, zy = (lat - KF.o[0]) * my;
+  const dt = Math.min(5, Math.max(0.05, (t - KF.t) / 1000)); KF.t = t;
+  const q = 0.6 * 0.6, R = Math.max(0.05, acc * acc / 2);         // تسارع المشي ٠٫٦ م/ث² · ضوضاء القياس من الدقة المبلّغة
+  const out = [];
+  for (let ax = 0; ax < 2; ax++) {
+    const z = ax ? zy : zx; let pos = KF.x[ax], vel = KF.x[ax + 2], P = KF.Q[ax];
+    pos += vel * dt;                                                // التنبؤ
+    const p00 = P[0][0] + dt * (P[1][0] + P[0][1]) + dt * dt * P[1][1] + q * dt ** 4 / 4,
+          p01 = P[0][1] + dt * P[1][1] + q * dt ** 3 / 2, p11 = P[1][1] + q * dt * dt;
+    const S = p00 + R, k0 = p00 / S, k1 = p01 / S, y = z - pos;     // التحديث
+    pos += k0 * y; vel += k1 * y;
+    KF.Q[ax] = [[(1 - k0) * p00, (1 - k0) * p01], [p01 - k1 * p00, p11 - k1 * p01]];
+    KF.x[ax] = pos; KF.x[ax + 2] = vel; out.push(pos);
+  }
+  return [KF.o[0] + out[1] / my, KF.o[1] + out[0] / mx, Math.sqrt(KF.Q[0][0][0] + KF.Q[1][0][0])];
+}
+const kfReset = () => { KF.o = null; };
+
+/* ---------- متوسط قوي عند التثبيت: يستبعد القراءات الشاذة ---------- */
+function robustMean(list) {
+  const o = list[0], [mx, my] = mPerDeg(o.lat);
+  const xy = list.map(q => ({ x: (q.lon - o.lon) * mx, y: (q.lat - o.lat) * my, acc: q.acc }));
+  const med = v => { const s = [...v].sort((a, b) => a - b); return s[s.length >> 1]; };
+  const cx = med(xy.map(q => q.x)), cy = med(xy.map(q => q.y));
+  const d = xy.map(q => Math.hypot(q.x - cx, q.y - cy)), mad = med(d) * 1.4826;
+  const keep = xy.filter((q, i) => d[i] <= Math.max(0.3, 3 * mad));
+  let w = 0, sx = 0, sy = 0;
+  for (const q of keep) { const k = 1 / Math.max(0.5, q.acc) ** 2; w += k; sx += q.x * k; sy += q.y * k; }
+  const x = sx / w, y = sy / w;
+  const sd = Math.sqrt(keep.reduce((s, q) => s + (q.x - x) ** 2 + (q.y - y) ** 2, 0) / Math.max(1, keep.length - 1));
+  const accMed = med(keep.map(q => q.acc)), secs = (list[list.length - 1].t - list[0].t) / 1000;
+  // قراءات الـGPS المتتالية مترابطة؛ نعدّ قراءة مستقلة تقريباً كل ١٠ ثوانٍ، وأقصى تحسين ٣ أضعاف
+  const neff = Math.min(9, 1 + secs / 10);
+  return { lat: o.lat + y / my, lon: o.lon + x / mx, n: list.length, used: keep.length, sd, secs,
+           acc: Math.max(2 * sd / Math.sqrt(neff), accMed / Math.sqrt(neff), 0.05) };
+}
+
 function onPos(pos) {
   const c = pos.coords, now = Date.now(); lastFix = now;
-  buf.push({ lat: c.latitude, lon: c.longitude, acc: c.accuracy, t: now });
-  // بدون تثبيت: آخر قراءة فقط (كان المتوسط على ٤ ثوانٍ يؤخّر الموقع ٣–٥ م أثناء المشي)
-  buf = hold ? buf.slice(-180) : buf.slice(-1);
-  // متوسط موزون بعكس مربع الدقة
-  let w = 0, la = 0, lo = 0, best = 1e9;
-  for (const q of buf) { const k = 1 / Math.max(1, q.acc) ** 2; w += k; la += q.lat * k; lo += q.lon * k; best = Math.min(best, q.acc); }
-  const acc = hold && buf.length > 3 ? Math.max(0.5, best / Math.sqrt(buf.length / 3)) : c.accuracy;
-  me = { lat: la / w, lon: lo / w, acc, raw: c.accuracy, n: buf.length, heading: c.heading, speed: c.speed };
-  setPill(c.accuracy <= 3 ? 'good' : c.accuracy <= 8 ? 'mid' : 'bad', 'دقة ' + f(c.accuracy, 1) + ' م');
-  $('sAcc').textContent = f(acc, 1); $('sAvg').textContent = hold ? buf.length : '—';
+  // تجاهل القراءات الضعيفة جداً (إلا إن لم يوجد غيرها)
+  if (meRaw && c.accuracy > +set.maxAcc) { setPill('bad', `قراءة ضعيفة ${f(c.accuracy, 0)} م — تُجوهلت`); return; }
+  let lat, lon, acc, extra = {};
+  if (hold) {
+    buf.push({ lat: c.latitude, lon: c.longitude, acc: c.accuracy, t: now }); buf = buf.slice(-600);
+    const r = robustMean(buf); lat = r.lat; lon = r.lon; acc = r.acc; extra = r;
+  } else {
+    if (KF.o && distBear(KF.o[0], KF.o[1], c.latitude, c.longitude).d > 2000) kfReset();
+    const k = kfStep(c.latitude, c.longitude, c.accuracy, now);
+    lat = k[0]; lon = k[1]; acc = Math.min(c.accuracy, Math.max(k[2] || c.accuracy, c.accuracy * 0.6));
+  }
+  meRaw = { lat, lon };
+  if (cal) [lat, lon] = shiftLL(lat, lon, cal.dE, cal.dN);
+  me = { ...extra, lat, lon, acc, raw: c.accuracy, n: hold ? buf.length : 1, heading: c.heading, speed: c.speed, cal: !!cal };
+  setPill(c.accuracy <= 3 ? 'good' : c.accuracy <= 8 ? 'mid' : 'bad', 'دقة ' + f(c.accuracy, 1) + ' م' + (cal ? ' ✓' : ''));
+  $('sAcc').textContent = acc < 1 ? f(acc * 100, 0) + ' سم' : f(acc, 2);
+  $('sAvg').textContent = hold ? `${buf.length} · ${f(extra.secs, 0)}ث` : '—';
+  holdUI(); calUI();
+  if (goPending && map) goMe();
   if (!$('pNav').hidden) updNav();
   if (!$('pPoints').hidden) renderPts();
+}
+function holdUI() {
+  const el = $('holdInfo'); if (!el) return;
+  if (!hold || !me || !me.n) { el.hidden = true; return; }
+  const q = me.acc <= 0.5 ? ['ممتازة', 'var(--ok)'] : me.acc <= 1.5 ? ['جيدة', 'var(--ok)'] : me.acc <= 3 ? ['متوسطة', 'var(--warn)'] : ['ضعيفة', 'var(--bad)'];
+  const pct = Math.min(100, me.secs / 60 * 100);
+  el.hidden = false;
+  el.innerHTML = `<div style="display:flex;justify-content:space-between"><b>تثبيت دقيق</b><span style="color:${q[1]};font-weight:700">${q[0]}</span></div>
+    <div class="prog" style="margin:6px 0"><i style="width:${pct}%"></i></div>
+    <div class="num" style="font-size:12.5px;color:var(--mut)">${me.n} قراءة (${me.used} مقبولة) · انتشار ±${f(me.sd, 2)} م · دقة تقديرية ±${f(me.acc, 2)} م</div>
+    <div style="font-size:12px;color:var(--mut)">${me.secs < 60 ? `قف ثابتاً ${f(60 - me.secs, 0)} ثانية أخرى للحصول على أفضل نتيجة` : '✔ اكتمل — يمكنك التسجيل'}</div>
+    ${cal ? '' : '<div style="font-size:12px;color:var(--warn);margin-top:4px">⚠ التثبيت يزيل التذبذب فقط، لا انحياز الـGPS الثابت (عادة ١–٣ م). للدقة الحقيقية استخدم «معايرة على نقطة معلومة».</div>'}`;
+}
+function calUI() {
+  const el = $('calInfo'); if (!el) return;
+  if (!cal) { el.hidden = true; return; }
+  const mins = (Date.now() - cal.t) / 60000, far = me ? distBear(me.lat, me.lon, cal.lat, cal.lon).d : 0, old = mins > 30 || far > 3000;
+  el.hidden = false; el.className = 'calbar' + (old ? ' old' : '');
+  el.innerHTML = `<span>${old ? '⚠' : '✓'} مُعايَر على النقطة <b>${esc(cal.no)}</b> منذ ${f(mins, 0)} د · تصحيح ${f(Math.hypot(cal.dE, cal.dN), 2)} م${old ? ' — أعد المعايرة' : ''}</span><button class="btn sm ghost" id="bCalX" type="button">إلغاء</button>`;
+  $('bCalX').onclick = () => { cal = null; store.set('pf_cal', null); calUI(); toast('أُلغيت المعايرة'); };
 }
 setInterval(() => { if (watch !== null && lastFix && Date.now() - lastFix > 15000) setPill('bad', 'الإشارة متوقفة'); }, 5000);
 
@@ -838,8 +1007,24 @@ function pick(i) { if (!pts.length) return; curIdx = (i + pts.length) % pts.leng
 $('selPt').onchange = () => { pick(+$('selPt').value); startNav(); };
 $('bPrev').onclick = () => pick(curIdx - 1);
 $('bNext').onclick = () => pick(curIdx + 1);
-$('bHold').onclick = () => { hold = !hold; buf = buf.slice(-1); $('bHold').classList.toggle('on', hold);
-  $('bHold').textContent = hold ? '▶ إلغاء التثبيت' : '⏸ تثبيت ومتوسط'; toast(hold ? 'قف ثابتاً — يُحسب متوسط القراءات' : 'رجعنا للتتبع المباشر'); };
+$('bHold').onclick = () => { hold = !hold; buf = []; kfReset(); $('bHold').classList.toggle('on', hold);
+  $('bHold').textContent = hold ? '▶ إلغاء التثبيت' : '⏸ تثبيت دقيق'; holdUI();
+  toast(hold ? 'قف ثابتاً دقيقة كاملة — تُستبعد القراءات الشاذة' : 'رجعنا للتتبع المباشر'); };
+// معايرة على نقطة معلومة: يحسب انحراف الـGPS ويصحّح به كل القراءات التالية
+$('bCal').onclick = () => {
+  const p = pts[curIdx], b = $('bCal'); if (!p) return toast('اختر النقطة المعلومة أولاً');
+  if (!hold || buf.length < 10) { if (!hold) $('bHold').click();
+    return toast(`قف تماماً فوق النقطة المعلومة ${p.no} — انتظر ٣٠–٦٠ ثانية ثم اضغط «معايرة» مرة ثانية`); }
+  const r = robustMean(buf), [tl, tn] = toLL(p), [mx, my] = mPerDeg(tl);
+  const dE = (tn - r.lon) * mx, dN = (tl - r.lat) * my, d = Math.hypot(dE, dN);
+  if (d > 30 && !b.dataset.sure) { b.dataset.sure = 1; setTimeout(() => delete b.dataset.sure, 4000);
+    return toast(`الفرق كبير (${f(d, 1)} م) — تأكد من النقطة والمرجع. اضغط مرة ثانية للاعتماد`); }
+  delete b.dataset.sure;
+  cal = { dE, dN, t: Date.now(), no: p.no, lat: tl, lon: tn, n: r.n, sd: r.sd }; store.set('pf_cal', cal);
+  hold = false; buf = []; kfReset(); $('bHold').classList.remove('on'); $('bHold').textContent = '⏸ تثبيت دقيق';
+  calUI(); holdUI(); navigator.vibrate?.([80, 60, 80]);
+  toast(`✔ تمت المعايرة — تصحيح ${f(d, 2)} م (شرق ${f(dE, 2)}، شمال ${f(dN, 2)})`);
+};
 function soundUI() { $('bSound').classList.toggle('on', sound); $('bSound').textContent = sound ? '🔊 الصوت يعمل' : '🔇 الصوت متوقف'; }
 $('bSound').onclick = () => { sound = !sound; store.set('pf_sound', sound); soundUI();
   if (sound) { ensureAudio(); beepLoud(2900, 0.12); setTimeout(() => beepLoud(3400, 0.12), 150); toast('ارفع صوت الجوال للآخر'); } };
@@ -852,7 +1037,7 @@ $('bStake').onclick = () => {
     setTimeout(() => delete b.dataset.sure, 3500); return; }
   delete b.dataset.sure;
   // الانحراف = موقعي ناقص النقطة التصميمية
-  p.done = { t: Date.now(), d: +f(r.d, 3), dE: +f(-r.dE, 3), dN: +f(-r.dN, 3), acc: +f(me.acc, 2), avg: hold ? buf.length : 1 };
+  p.done = { t: Date.now(), d: +f(r.d, 3), dE: +f(-r.dE, 3), dN: +f(-r.dN, 3), acc: +f(me.acc, 2), avg: hold ? buf.length : 1, sd: hold ? +f(me.sd, 3) : null, cal: cal ? cal.no : null };
   save(); navigator.vibrate?.(60);
   toast(`سُجّلت النقطة ${p.no} — انحراف ${f(r.d, 2)} م`);
   const nxt = pts.findIndex((q, i) => i > curIdx && !q.done), any = pts.findIndex(q => !q.done);
@@ -892,7 +1077,7 @@ function loadLeaflet() {
   });
 }
 const meIcon = () => L.divIcon({ className: '', iconSize: [44, 44], iconAnchor: [22, 22],
-  html: `<svg class="me-ic" viewBox="0 0 44 44"><g class="cone"><path d="M22 0 L33 17 Q22 12 11 17Z" fill="#3b82f6" fill-opacity=".85"/></g><circle cx="22" cy="22" r="9" fill="#3b82f6" stroke="#fff" stroke-width="3.5"/></svg>` });
+  html: `<svg class="me-ic" viewBox="0 0 44 44"><g class="cone"><path d="M22 0 L33 17 Q22 12 11 17Z" fill="#3b82f6" fill-opacity=".85"/></g><circle cx="22" cy="22" r="9" fill="none" stroke="#3b82f6" stroke-width="2"><animate attributeName="r" values="9;20;9" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".9;0;.9" dur="2s" repeatCount="indefinite"/></circle><circle cx="22" cy="22" r="9" fill="#3b82f6" stroke="#fff" stroke-width="3.5"/></svg>` });
 async function initMap() {
   if (map) { setTimeout(() => { map.invalidateSize(); updMap(); }, 80); return; }
   $('mapMsg').hidden = false; $('mapMsg').textContent = 'جارٍ تحميل الخريطة…';
@@ -901,18 +1086,34 @@ async function initMap() {
   const c = me ? [me.lat, me.lon] : pts[curIdx] ? toLL(pts[curIdx]) : [24.7, 46.7];
   map = L.map('map', { maxZoom: 22, zoomControl: true, attributionControl: true }).setView(c, 18);
   map.attributionControl.setPrefix(false);
-  mk.sat = L.layerGroup([
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 19, maxZoom: 22, attribution: 'صور © Esri, Maxar' }),
-    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxNativeZoom: 19, maxZoom: 22 }),
-  ]);
-  mk.osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxNativeZoom: 19, maxZoom: 22, attribution: '© OpenStreetMap' });
-  mk.sat.addTo(map);
+  // طبقة الصور في لوح خاص حتى يمكن إزاحتها لمطابقة الواقع
+  map.createPane('imgP').style.zIndex = 200;
+  // أعلى مستوى فيه صور حقيقية في السعودية = ١٩ (بعده تعيد Esri صورة «غير متوفر»).
+  // في شاشات الجوال عالية الكثافة تطلب Leaflet مستوى أعلى بواحد، فنخفض الحد ليبقى الطلب ≤ ١٩ ونكبّر الصورة بدل الفراغ.
+  const R = L.Browser.retina, T = (u, o = {}) => L.tileLayer(u, Object.assign({ pane: 'imgP', detectRetina: true, maxNativeZoom: R ? 18 : 19, maxZoom: R ? 23 : 22 }, o));
+  const labels = () => T('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}');
+  mk.layers = {
+    hd:  L.layerGroup([T('https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'صور © Esri Clarity, Maxar' }), labels()]),
+    sat: L.layerGroup([T('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'صور © Esri, Maxar' }), labels()]),
+    osm: T('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { detectRetina: false, maxNativeZoom: 19, maxZoom: 22, attribution: '© OpenStreetMap' }),
+  };
+  mapLayer = store.get('pf_layer', 'hd'); if (!mk.layers[mapLayer]) mapLayer = 'hd';
+  mk.layers[mapLayer].addTo(map); layerUI();
+  L.control.scale({ metric: true, imperial: false, position: 'topright' }).addTo(map);
+  // زر «موقعي» على الخريطة
+  const Loc = L.Control.extend({ options: { position: 'topleft' }, onAdd() {
+    const b = L.DomUtil.create('button', 'locBtn'); b.type = 'button'; b.id = 'locBtn'; b.title = 'اذهب إلى موقعي';
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/><path d="M12 1.5v3.5M12 19v3.5M1.5 12H5M19 12h3.5"/></svg>';
+    L.DomEvent.disableClickPropagation(b); L.DomEvent.on(b, 'click', goMe); return b; } });
+  new Loc().addTo(map);
+  startGPS();
+  map.on('zoomend', applyImgOff); map.on('zoomanim', e => applyImgOff(e.zoom)); applyImgOff();
   mk.bound = L.polygon([], { color: '#ffffff', weight: 1.5, dashArray: '4 6', fill: false, interactive: false }).addTo(map);
   mk.line = L.polyline([], { color: '#c9a24a', weight: 5, dashArray: '10 8', interactive: false }).addTo(map);
   mk.pts = L.layerGroup().addTo(map);
   mk.acc = L.circle(c, { radius: 1, color: '#3b82f6', weight: 1, fillOpacity: .15, interactive: false });
   mk.me = L.marker(c, { icon: meIcon(), interactive: false, zIndexOffset: 1000, keyboard: false });
-  map.on('dragstart', () => { follow = false; $('mFollow').classList.remove('on'); });
+  map.on('dragstart', () => { follow = false; $('mFollow').classList.remove('on'); $('locBtn')?.classList.remove('on'); });
   $('mFollow').classList.add('on');
   drawMapPts();
   setTimeout(() => { map.invalidateSize(); fitted = false; updMap(true); }, 120);
@@ -937,15 +1138,44 @@ function updMap(first) {
     if (el) { const s = el.querySelector('svg'); s.style.transform = `rotate(${h ?? 0}deg)`; el.querySelector('.cone').style.display = h === null ? 'none' : ''; }
     mk.line.setLatLngs(t ? [ll, t] : []);
     if ((first || !fitted) && t) { map.fitBounds(L.latLngBounds([ll, t]).pad(0.25), { maxZoom: 20 }); fitted = Date.now(); }
+    else if (follow && $('locBtn')?.classList.contains('on')) map.panTo(ll, { animate: true, duration: 0.3 });
     else if (follow && Date.now() - fitted > 4000 && !map.getBounds().pad(-0.25).contains(ll)) map.panTo(ll, { animate: true, duration: 0.4 });
   } else if (first && t) map.setView(t, 19);
+}
+let goPending = false;
+// ينقلك إلى مكانك بأعلى تكبير، ويتابعك وأنت تمشي
+function goMe() {
+  startGPS();
+  if (!me || !map) { goPending = true; $('locBtn')?.classList.add('wait'); toast('جارٍ تحديد موقعك بدقة عالية…'); return; }
+  goPending = false; $('locBtn')?.classList.remove('wait'); $('locBtn')?.classList.add('on');
+  follow = true; $('mFollow').classList.add('on'); fitted = Date.now();
+  map.flyTo([me.lat, me.lon], 21, { duration: 0.8 });
+  toast(`📍 أنت هنا · الدقة ±${me.acc < 1 ? f(me.acc * 100, 0) + ' سم' : f(me.acc, 1) + ' م'}${cal ? ' · مُعايَر ✓' : ''}${me.acc > 3 ? ' — للأدق: «تثبيت دقيق» أو «معايرة»' : ''}`);
 }
 $('mFollow').onclick = () => { follow = true; $('mFollow').classList.add('on'); if (me && map) map.setView([me.lat, me.lon], Math.max(map.getZoom(), 19)); };
 $('mFit').onclick = () => { const p = pts[curIdx]; if (!map || !p) return; follow = false; $('mFollow').classList.remove('on');
   const b = [toLL(p)]; if (me) b.push([me.lat, me.lon]); map.fitBounds(L.latLngBounds(b).pad(0.3), { maxZoom: 20 }); };
-$('mLayer').onclick = () => { if (!map) return; mapLayer = mapLayer === 'sat' ? 'osm' : 'sat';
-  map.removeLayer(mapLayer === 'sat' ? mk.osm : mk.sat); (mapLayer === 'sat' ? mk.sat : mk.osm).addTo(map);
-  $('mLayer').textContent = mapLayer === 'sat' ? '🗺️ شوارع' : '🛰️ قمر صناعي'; };
+const LAYER_ORDER = ['hd', 'sat', 'osm'], LAYER_NAME = { hd: '🛰️ عالية الوضوح', sat: '🛰️ Esri عادية', osm: '🗺️ شوارع' };
+function layerUI() { $('mLayer').textContent = LAYER_NAME[mapLayer]; }
+$('mLayer').onclick = () => { if (!map) return; map.removeLayer(mk.layers[mapLayer]);
+  mapLayer = LAYER_ORDER[(LAYER_ORDER.indexOf(mapLayer) + 1) % 3]; mk.layers[mapLayer].addTo(map); store.set('pf_layer', mapLayer); layerUI();
+  toast(mapLayer === 'hd' ? 'صور Clarity: أحدث وأوضح في أغلب المدن' : mapLayer === 'sat' ? 'صور Esri العادية: جرّبها إن كانت Clarity غير واضحة في منطقتك' : 'خريطة الشوارع'); };
+/* ---------- مطابقة الصورة الجوية (إزاحة بالأمتار) ---------- */
+let imgOff = store.get('pf_imgoff', { e: 0, n: 0 }), alStep = 0.25;
+function applyImgOff(zoom) {
+  if (!map) return; const z = typeof zoom === 'number' ? zoom : map.getZoom(), lat = map.getCenter().lat;
+  const mpp = 156543.03392 * Math.cos(lat * D2R) / 2 ** z, pane = map.getPane('imgP');
+  pane.style.marginLeft = f(imgOff.e / mpp, 1) + 'px'; pane.style.marginTop = f(-imgOff.n / mpp, 1) + 'px';
+  $('alignVal').textContent = `شرق ${f(imgOff.e, 2)} · شمال ${f(imgOff.n, 2)} م`;
+  $('mAlign').classList.toggle('on', !!(imgOff.e || imgOff.n));
+}
+$('mAlign').onclick = () => { $('alignBox').hidden = !$('alignBox').hidden; if (!$('alignBox').hidden && map) map.setZoom(Math.max(map.getZoom(), 20)); };
+$('alStep').onclick = () => { alStep = alStep === 0.25 ? 1 : alStep === 1 ? 0.05 : 0.25; $('alStep').textContent = alStep === 1 ? '١ م' : alStep === 0.25 ? '٢٥ سم' : '٥ سم'; };
+$('alignBox').addEventListener('click', e => { const b = e.target.closest('[data-mv]'); if (!b) return;
+  const [x, y] = b.dataset.mv.split(',').map(Number); imgOff = { e: +(imgOff.e + x * alStep).toFixed(2), n: +(imgOff.n + y * alStep).toFixed(2) };
+  store.set('pf_imgoff', imgOff); applyImgOff(); });
+$('alZero').onclick = () => { imgOff = { e: 0, n: 0 }; store.set('pf_imgoff', imgOff); applyImgOff(); };
+$('alDone').onclick = () => { $('alignBox').hidden = true; };
 /* ---------- الصوت ----------
    > ٢٠ م: صامت · ٥–٢٠ م: نغمة هادئة تتسارع
    ١–٥ م: صفارة عالية تتسارع كلما قربت · ≤ ١ م (أو مسافة الوصول): إنذار متواصل بأعلى صوت + اهتزاز */
@@ -994,7 +1224,7 @@ function updNav(fromCompass) {
   const p = pts[curIdx];
   navDist = null;
   if (!p) { $('target').textContent = ''; $('dist').textContent = '—'; $('dirTxt').textContent = 'أضف نقاطاً أولاً من شاشة «النقاط»'; $('offs').hidden = true; cue('', 'أضف نقاطاً أولاً'); return; }
-  $('target').textContent = `${sysName(p.sys)} · ${fmtA(p)} , ${fmtB(p)}` + (p.done ? ' · ✔ موقَّعة' : '');
+  $('target').textContent = `${sysName(p.sys, p.dat)} · ${fmtA(p)} , ${fmtB(p)}` + (p.done ? ' · ✔ موقَّعة' : '');
   const hasH = heading !== null || !!(me && me.speed > 0.7 && me.heading != null);
   const h = heading !== null ? heading : hasH ? me.heading : 0;
   $('northG').setAttribute('transform', `rotate(${f(-h, 1)} 150 150)`); $('ticksG').setAttribute('transform', `rotate(${f(-h, 1)} 150 150)`);
@@ -1021,11 +1251,19 @@ function updNav(fromCompass) {
   $('arrowG').setAttribute('transform', `rotate(${f(rel, 1)} 150 150)`);
   $('arrowP').setAttribute('fill', r.d <= 20 ? 'var(--warn)' : 'var(--gold)');
   $('zoneRing').setAttribute('stroke', ok ? 'var(--ok)' : r.d <= 20 ? 'var(--warn)' : 'var(--line)');
-  if (near) { const rr = Math.min(r.d * 25, 132), a = rel * D2R;
+  if (near) {
+    // تحت ١٫٢٥ م تتكبّر الشاشة ×٤ (حلقات بالسنتيمتر) للتوقيع الدقيق
+    const fine = r.d <= 1.25, sc = fine ? 100 : 25, rr = Math.min(r.d * sc, 132), a = rel * D2R;
+    if ($('nearView').dataset.fine !== String(fine)) { $('nearView').dataset.fine = fine;
+      $('nl1').textContent = fine ? '١٢٥ سم' : '٥ م'; $('nl2').textContent = fine ? '٧٥ سم' : '٣ م';
+      }
+    const tr = Math.min(125, tol * sc); $('nTol').setAttribute('r', f(tr, 1));
+    $('nl3').textContent = (tol < 1 ? f(tol * 100, 0) + ' سم' : f(tol, tol % 1 ? 1 : 0) + ' م').replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+    $('nl3').setAttribute('x', f(150 + tr * 0.72, 1)); $('nl3').setAttribute('y', f(150 + tr * 0.72 + 12, 1));
     $('tgtG').setAttribute('transform', `translate(${f(150 + rr * Math.sin(a), 1)} ${f(150 - rr * Math.cos(a), 1)})`); }
   // التعليمة الكبيرة
   const m = r.d < 10 ? f(r.d, 1) + ' م' : fmtD(r.d);
-  if (ok) cue(zone, '✔ وصلت — ثبّت العلامة');
+  if (ok) cue(zone, '✔ وصلت — ثبّت العلامة' + (r.d <= 1.25 ? ` · ${f(r.d * 100, 0)} سم` : ''));
   else if (!hasH) cue(zone, `اتجه نحو ${dirAr(r.b)} · ${m}`);
   else if (rel < 25 || rel > 335) cue(zone, `⬆ تقدّم للأمام · ${m}`);
   else if (rel <= 155) cue(zone, `↪ لف يميناً · ${m}`);
@@ -1046,22 +1284,23 @@ function convRender() {
   const sys = $('cSys').value; $('lA').textContent = sys === 'll' ? 'خط الطول (Lon)' : 'شرق E'; $('lB').textContent = sys === 'll' ? 'خط العرض (Lat)' : 'شمال N';
   const a = parseFloat(normDigits($('cA').value)), b = parseFloat(normDigits($('cB').value));
   if (!isFinite(a) || !isFinite(b)) { $('cOut').innerHTML = '<span class="hint" style="grid-column:1/-1;margin:0">اكتب الإحداثيات أو اضغط «موقعي»</span>'; return; }
-  const [lat, lon] = sys === 'll' ? [b, a] : utm2ll(a, b, +sys);
+  const [lat, lon] = toLL({ sys, a, b, dat: $('cDat').value });
   const rows = [['عرض (درجات)', f(lat, 8)], ['طول (درجات)', f(lon, 8)], ['عرض DMS', dms(lat, 'N', 'S')], ['طول DMS', dms(lon, 'E', 'W')]];
   for (const z of [37, 38, 39, 40]) { const [E, N] = ll2utm(lat, lon, z); rows.push([`UTM ${z}N` + (z === zoneOf(lon) ? ' ✔' : ''), f(E, 3) + '  ' + f(N, 3)]); }
+  { const z = zoneOf(lon), [E, N] = fromLL(lat, lon, String(z), 'aea'); rows.push([`عين العبد UTM ${z}N`, f(E, 3) + '  ' + f(N, 3)]); }
   rows.push(['خرائط Google', `${f(lat, 7)},${f(lon, 7)}`]);
   $('cOut').innerHTML = rows.map(([k, v]) => `<span class="k">${k}</span><span class="num">${esc(v)}</span><button class="btn sm" data-copy="${esc(v)}">نسخ</button>`).join('');
 }
-['cSys', 'cA', 'cB'].forEach(id => $(id).addEventListener('input', convRender));
+['cSys', 'cDat', 'cA', 'cB'].forEach(id => $(id).addEventListener('input', convRender));
 $('cOut').onclick = async e => { const c = e.target.closest('[data-copy]'); if (!c) return;
   try { await navigator.clipboard.writeText(c.dataset.copy); toast('نُسخ'); } catch (err) { toast(c.dataset.copy); } };
 $('bMyPos').onclick = () => { startGPS(); if (!me) return toast('انتظر حتى يُحدَّد موقعك ثم اضغط مرة ثانية');
   const sys = $('cSys').value;
-  if (sys === 'll') { $('cA').value = f(me.lon, 8); $('cB').value = f(me.lat, 8); } else { const [E, N] = ll2utm(me.lat, me.lon, +sys); $('cA').value = f(E, 3); $('cB').value = f(N, 3); }
+  const [x, y] = fromLL(me.lat, me.lon, sys, $('cDat').value); $('cA').value = f(x, sys === 'll' ? 8 : 3); $('cB').value = f(y, sys === 'll' ? 8 : 3);
   convRender(); };
 $('bConvAdd').onclick = () => { const a = parseFloat(normDigits($('cA').value)), b = parseFloat(normDigits($('cB').value));
   if (!isFinite(a) || !isFinite(b)) return toast('اكتب الإحداثيات أولاً');
-  addPoint({ no: String(pts.length + 1), sys: $('cSys').value, a, b }); toast('أُضيفت للنقاط'); };
+  addPoint({ no: String(pts.length + 1), sys: $('cSys').value, a, b, ...($('cDat').value === 'aea' ? { dat: 'aea' } : {}) }); toast('أُضيفت للنقاط'); };
 
 /* ================= المساحة ================= */
 function areaRender() {
@@ -1096,7 +1335,9 @@ function dxfText(s) { // الحروف العربية بصيغة \U+XXXX التي
 function buildDxf(list, opts) {
   // كل النقاط على نطاق UTM واحد
   const z = +(list.find(p => p.sys !== 'll')?.sys || zoneOf(toLL(list[0])[1]));
-  const xy = list.map(p => { const [E, N] = p.sys === String(z) ? [p.a, p.b] : ll2utm(...toLL(p), z); return { p, E, N }; });
+  // المرجع: نفس مرجع أول نقطة UTM (تبقى أرقام الصك كما هي)، وغيرها يُحوَّل إليه
+  const dat0 = list.find(p => p.sys !== 'll')?.dat || 'wgs';
+  const xy = list.map(p => { const [E, N] = p.sys === String(z) && (p.dat || 'wgs') === dat0 ? [p.a, p.b] : fromLL(...toLL(p), String(z), dat0); return { p, E, N }; });
   const Es = xy.map(q => q.E), Ns = xy.map(q => q.N);
   const ext = Math.max(Math.max(...Es) - Math.min(...Es), Math.max(...Ns) - Math.min(...Ns), 1);
   const h = +Math.max(0.15, Math.min(5, ext / 120)).toPrecision(2);   // ارتفاع النص حسب حجم الموقع
@@ -1150,7 +1391,7 @@ $('bCsv').onclick = () => {
   if (!pts.length) return toast('لا نقاط للتصدير');
   const head = ['رقم', 'النظام', 'E أو طول', 'N أو عرض', 'خط العرض', 'خط الطول', 'الحالة', 'انحراف م', 'انحراف شرق', 'انحراف شمال', 'دقة GPS', 'وقت التوقيع'];
   const rows = pts.map(p => { const [la, lo] = toLL(p), d = p.done;
-    return [p.no, sysName(p.sys), fmtA(p), fmtB(p), f(la, 8), f(lo, 8), d ? 'موقَّعة' : 'متبقية', d ? d.d : '', d ? d.dE : '', d ? d.dN : '', d ? d.acc : '', d ? new Date(d.t).toLocaleString('en-GB') : '']; });
+    return [p.no, sysName(p.sys, p.dat), fmtA(p), fmtB(p), f(la, 8), f(lo, 8), d ? 'موقَّعة' : 'متبقية', d ? d.d : '', d ? d.dE : '', d ? d.dN : '', d ? d.acc : '', d ? new Date(d.t).toLocaleString('en-GB') : '']; });
   const csv = '﻿' + [head, ...rows].map(r => r.map(v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(',')).join('\r\n');
   giveFile(`points-${stamp()}.csv`, csv, 'text/csv');
 };

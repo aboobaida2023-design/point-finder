@@ -1,6 +1,6 @@
 // يحفظ التطبيق وقارئ الصور وصور الخريطة في الجوال ليعمل دون إنترنت.
 // غيّر رقم الإصدار عند أي تعديل حتى تصل النسخة الجديدة للأجهزة.
-const C = 'pf-v2.4';
+const C = 'pf-v2.6';
 const TILES = 'pf-tiles';            // صور الخريطة: تبقى بين الإصدارات
 const MAX_TILES = 4000;
 const CORE = ['./', 'index.html', 'manifest.json', 'icon.png'];
@@ -32,7 +32,7 @@ self.addEventListener('fetch', e => {
     return;
   }
   // صور الخريطة: من الذاكرة أولاً، وتُحفظ كل صورة تشاهدها
-  if (/arcgisonline\.com|tile\.openstreetmap\.org/.test(url.hostname)) {
+  if (/arcgis(online)?\.com|tile\.openstreetmap\.org/.test(url.hostname)) {
     e.respondWith(caches.open(TILES).then(c => c.match(req)).then(hit => hit || fetch(req).then(r => {
       put(TILES, req, r); if (++added % 200 === 0) trim(); return r; })));
     return;
